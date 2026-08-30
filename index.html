@@ -1,438 +1,1926 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="nb">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart Automatic Notch Filter for SSB</title>
-  <style>
-    :root {
-      --bg: #0f1720;
-      --panel: #18222f;
-      --panel2: #111923;
-      --text: #e8eef5;
-      --muted: #a8b4c2;
-      --accent: #63c5da;
-      --accent2: #8ad1a5;
-      --border: #2a3949;
-      --code: #0b1118;
-      --warn: #f0c674;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, "Segoe UI", Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.65;
-    }
-    .wrap {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 36px 20px 60px;
-    }
-    header {
-      padding: 30px;
-      background: linear-gradient(135deg, #172433, #10202b);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      margin-bottom: 24px;
-    }
-    h1 { margin: 0 0 8px; font-size: 2.2rem; line-height: 1.2; }
-    h2 { margin-top: 0; font-size: 1.45rem; }
-    h3 { margin-bottom: 8px; }
-    p { margin: 0.7em 0; }
-    .lead { color: #cbd7e3; font-size: 1.08rem; }
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      margin: 18px 0;
-    }
-    .note {
-      border-left: 4px solid var(--accent);
-      padding-left: 16px;
-    }
-    .good {
-      border-left: 4px solid var(--accent2);
-      padding-left: 16px;
-    }
-    code, pre {
-      font-family: "Cascadia Code", Consolas, monospace;
-    }
-    pre {
-      background: var(--code);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px;
-      overflow-x: auto;
-      color: #dce8f2;
-      line-height: 1.45;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-    }
-    th, td {
-      border-bottom: 1px solid var(--border);
-      padding: 10px 8px;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { color: var(--accent); }
-    ul { padding-left: 22px; }
-    .tag {
-      display: inline-block;
-      padding: 3px 9px;
-      margin: 2px 4px 2px 0;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-    .small { color: var(--muted); font-size: 0.92rem; }
-    footer {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
-    }
-    a { color: var(--accent); }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartANF – et intelligent adaptivt notchfilter for SSB</title>
+<meta name="description" content="Teknisk konseptdokument om adaptiv notchfiltrering for SSB-mottak: DSP-teori, tonedeteksjon, fler-tone tracking, latens og hvordan lokal maskinlæring kan brukes som beslutningslag.">
+<style>
+  :root{
+    --bg:#0a121a;
+    --panel:#121e29;
+    --panel2:#0e1822;
+    --text:#e9f0f6;
+    --muted:#a8b6c4;
+    --accent:#67c7dc;
+    --accent-dim:#2c4f5b;
+    --good:#8bd0a4;
+    --warn:#efc56f;
+    --danger:#ec8b8b;
+    --line:#2a3a48;
+    --code:#070f16;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.65;
+    font-size:16px;
+  }
+
+  .wrap{ max-width:1020px; margin:0 auto; padding:30px 20px 72px; }
+
+  /* ---------- topptekst ---------- */
+
+  header.hero{
+    padding:34px 30px;
+    background:linear-gradient(135deg,#172a37,#101f2a);
+    border:1px solid var(--line);
+    border-radius:18px;
+    margin-bottom:22px;
+  }
+
+  .eyebrow{
+    font-size:.78rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:10px;
+  }
+
+  header.hero h1{ margin:0 0 12px; font-size:2.05rem; line-height:1.22; letter-spacing:-.01em; }
+  .lead{ color:#cfdbe6; font-size:1.04rem; margin:.7em 0; }
+
+  .badges{ margin-top:18px; }
+
+  .badge{
+    display:inline-block;
+    padding:4px 11px;
+    margin:3px 5px 3px 0;
+    border:1px solid var(--accent-dim);
+    border-radius:999px;
+    color:var(--accent);
+    font-size:.83rem;
+  }
+
+  /* ---------- innholdsfortegnelse ---------- */
+
+  nav.toc{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px 26px;
+    margin-bottom:30px;
+  }
+
+  nav.toc h2{
+    margin:0 0 12px;
+    font-size:1rem;
+    text-transform:uppercase;
+    letter-spacing:.09em;
+    color:var(--muted);
+  }
+
+  nav.toc ol{ margin:0; padding-left:20px; }
+  nav.toc > ol > li{ margin:9px 0; font-weight:600; }
+  nav.toc ol ol{ padding-left:16px; margin:5px 0 12px; }
+  nav.toc ol ol li{ font-weight:400; margin:2px 0; }
+  nav.toc a{ color:var(--text); text-decoration:none; border-bottom:1px solid transparent; }
+  nav.toc a:hover{ color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* ---------- deler ---------- */
+
+  .part{
+    margin:46px 0 22px;
+    padding:26px 30px;
+    background:linear-gradient(135deg,#173039,#122430);
+    border:1px solid var(--accent-dim);
+    border-left:5px solid var(--accent);
+    border-radius:14px;
+  }
+
+  .part-label{
+    display:block;
+    font-size:.8rem;
+    letter-spacing:.17em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:6px;
+  }
+
+  .part h2{ margin:0 0 8px; font-size:1.55rem; line-height:1.25; }
+  .part p{ margin:0; color:var(--muted); font-size:.96rem; }
+
+  /* ---------- seksjoner ---------- */
+
+  section.card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:24px 26px;
+    margin:18px 0;
+  }
+
+  section.card > h3{ margin:0 0 12px; font-size:1.24rem; line-height:1.3; }
+  section.card > h3 .num{ color:var(--accent); font-variant-numeric:tabular-nums; margin-right:8px; }
+
+  h4{ margin:22px 0 8px; font-size:1.01rem; color:var(--accent); }
+  p{ margin:.75em 0; }
+  ul,ol{ padding-left:22px; }
+  li{ margin:4px 0; }
+  strong{ color:#f3f8fc; }
+
+  /* ---------- bokser ---------- */
+
+  .box{
+    border-radius:12px;
+    padding:16px 20px;
+    margin:18px 0;
+    border:1px solid var(--line);
+    border-left-width:4px;
+    background:var(--panel2);
+  }
+
+  .box .box-title{
+    display:block;
+    font-size:.77rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    margin-bottom:6px;
+    font-weight:700;
+  }
+
+  .box p:first-of-type{ margin-top:0; }
+  .box p:last-child{ margin-bottom:0; }
+
+  .box.viktig{ border-left-color:var(--warn); }
+  .box.viktig .box-title{ color:var(--warn); }
+  .box.konklusjon{ border-left-color:var(--good); }
+  .box.konklusjon .box-title{ color:var(--good); }
+  .box.merknad{ border-left-color:var(--accent); }
+  .box.merknad .box-title{ color:var(--accent); }
+  .box.feil{ border-left-color:var(--danger); }
+  .box.feil .box-title{ color:var(--danger); }
+
+  /* ---------- kode, likninger, diagrammer ---------- */
+
+  pre{
+    background:var(--code);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px 18px;
+    overflow-x:auto;
+    color:#dbe7f2;
+    line-height:1.45;
+    font-family:"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    font-size:.87rem;
+    margin:16px 0;
+  }
+
+  code{
+    font-family:"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    font-size:.9em;
+    background:var(--code);
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:1px 5px;
+  }
+
+  pre code{ background:none; border:none; padding:0; }
+
+  .eq{
+    background:var(--code);
+    border:1px solid var(--line);
+    border-left:4px solid var(--accent);
+    border-radius:10px;
+    padding:16px 20px;
+    margin:16px 0;
+    overflow-x:auto;
+    font-family:"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    font-size:.95rem;
+    color:#e4eef7;
+  }
+
+  figure{ margin:16px 0; }
+  figcaption{ color:var(--muted); font-size:.86rem; margin-top:6px; }
+
+  /* ---------- rutenett ---------- */
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:14px;
+    margin:16px 0;
+  }
+
+  .mini{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:16px 18px;
+  }
+
+  .mini h4{ margin:0 0 8px; }
+  .mini pre{ margin:0; font-size:.8rem; }
+
+  .kpi{
+    font-size:.76rem;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+
+  /* ---------- tabeller ---------- */
+
+  .table-wrap{ overflow-x:auto; margin:16px 0; }
+  table{ width:100%; border-collapse:collapse; min-width:520px; }
+
+  th,td{
+    border-bottom:1px solid var(--line);
+    padding:10px;
+    text-align:left;
+    vertical-align:top;
+    font-size:.93rem;
+  }
+
+  th{ color:var(--accent); font-weight:600; }
+  tbody tr:hover{ background:rgba(103,199,220,.05); }
+
+  /* ---------- referanser ---------- */
+
+  ol.refs{ padding-left:0; list-style:none; }
+
+  ol.refs li{
+    padding:12px 0 12px 46px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+    font-size:.93rem;
+  }
+
+  ol.refs li::before{
+    content:"[" attr(value) "]";
+    position:absolute;
+    left:0;
+    top:12px;
+    color:var(--accent);
+    font-variant-numeric:tabular-nums;
+  }
+
+  ol.refs li:last-child{ border-bottom:none; }
+
+  a{ color:var(--accent); }
+  a:hover{ color:#93dcec; }
+
+  .small{ color:var(--muted); font-size:.88rem; }
+
+  .fineprint{
+    color:var(--muted);
+    font-size:.76rem;
+    opacity:.75;
+    letter-spacing:.02em;
+    margin-top:14px;
+  }
+
+  .toplink{
+    display:inline-block;
+    margin:6px 0 24px;
+    font-size:.85rem;
+    color:var(--muted);
+    text-decoration:none;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:5px 14px;
+  }
+
+  .toplink:hover{ color:var(--accent); border-color:var(--accent); }
+
+  footer.doc{
+    color:var(--muted);
+    font-size:.9rem;
+    margin-top:40px;
+    padding-top:22px;
+    border-top:1px solid var(--line);
+  }
+
+  /* ---------- mobil ---------- */
+
+  @media (max-width:620px){
+    body{ font-size:15px; }
+    .wrap{ padding:18px 14px 48px; }
+    header.hero{ padding:24px 20px; }
+    header.hero h1{ font-size:1.55rem; }
+    section.card{ padding:20px 18px; }
+    .part{ padding:20px; }
+    .part h2{ font-size:1.28rem; }
+    nav.toc{ padding:18px; }
+    pre{ font-size:.76rem; padding:12px 14px; }
+    .eq{ font-size:.84rem; padding:12px 14px; }
+  }
+</style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap"><a id="top"></a>
 
-<header>
-  <h1>Smart Automatic Notch Filter for SSB</h1>
+<header class="hero">
+  <div class="eyebrow">Amatørradio · DSP · SSB · Edge AI</div>
+  <h1>SmartANF – et intelligent adaptivt notchfilter for SSB</h1>
   <p class="lead">
-    En moderne ekstern lydprosessor for automatisk deteksjon og fjerning av
-    konstante toner, heterodynesignal og andre smalbåndede forstyrrelser under SSB-mottak.
+    Et teknisk konsept for en ekstern lydprosessor som automatisk oppdager, følger og demper
+    vedvarende smalbåndede forstyrrelser – typisk en bærebølge eller en heterodyn – uten at
+    operatøren må finne notchfrekvensen manuelt, og uten å ødelegge talen eller fjerne
+    ønsket CW.
   </p>
+  <p class="lead">
+    Dokumentet består av to deler. <strong>Del I</strong> gir en praktisk oversikt over
+    problemet, over inline-DSP-løsninger som faktisk finnes, og over SmartANF-konseptet;
+    den krever ingen forkunnskaper i signalbehandling. <strong>Del II</strong> går inn i
+    adaptiv filtrering, tonedeteksjon, fler-tone tracking, latens, sanntidsarkitektur og
+    hvordan moderne maskinlæring kan brukes som et beslutningslag uten å erstatte selve
+    DSP-filtreringen. Til slutt følger en kontrollert referanseliste.
+  </p>
+  <div class="badges">
+    <span class="badge">Automatic Notch Filter</span>
+    <span class="badge">Adaptiv DSP</span>
+    <span class="badge">Fler-tone tracking</span>
+    <span class="badge">SSB / CW protection</span>
+    <span class="badge">TinyML / Edge AI</span>
+    <span class="badge">Lav latens</span>
+  </div>
 </header>
 
-<section class="card note">
-  <h2>Hva er problemet?</h2>
-  <p>
-    Under SSB-mottak kan en konstant tone eller bærebølge ligge midt i talelyden.
-    Mange transceivere har en manuell NOTCH-funksjon, men operatøren må selv finne
-    riktig frekvens og justere filteret.
-  </p>
-  <p>
-    Et <strong>Automatic Notch Filter (ANF)</strong> kan i stedet finne tonen automatisk,
-    opprette et smalt notch-filter og følge tonen dersom frekvensen driver.
-  </p>
-</section>
-
 <section class="card">
-  <h2>Finnes det ferdige produkter?</h2>
-  <p>Ja. Det finnes eller har eksistert flere eksterne DSP-enheter som kobles i lydveien:</p>
-  <pre>TRANSCEIVER  →  ekstern DSP / ANF  →  høyttaler eller hodetelefoner</pre>
+  <h3>Kort konklusjon</h3>
+  <p>
+    Grunnideen er ikke spekulativ. Adaptive notchfiltre er veletablert DSP-teknologi, og
+    kommersielle radio-DSP-produkter har i flere tiår kunnet fjerne én eller flere
+    heterodyner automatisk. Timewave oppga for DSP-599zx inntil 50 dB demping fra en
+    automatisk heterodyneliminator med en maksimal forsinkelse på 5 ms
+    [<a href="#r10">10</a>].
+  </p>
+  <p>
+    Det nye i SmartANF er kombinasjonen av <strong>presis frekvensestimering, flere samtidige
+    og selvryddende notchfiltre, bedre beslutningslogikk og valgfri lokal
+    ML-klassifikasjon</strong>.
+  </p>
 
-  <p>Eksempler på denne typen utstyr er blant annet:</p>
-  <ul>
-    <li>Timewave DSP-599zx</li>
-    <li>BHI Dual In-Line / Compact In-Line DSP</li>
-    <li>West Mountain Radio ClearSpeech CLRdsp</li>
-    <li>WOLFWAVE Advanced Audio Processor</li>
-    <li>Xiegu GNR1</li>
-  </ul>
+  <div class="box konklusjon">
+    <span class="box-title">Den viktigste designregelen</span>
+    <p>
+      Klassisk DSP gjør selve filtreringen. Moderne AI/ML kan forbedre beslutningen om hva
+      som faktisk skal filtreres bort.
+    </p>
+  </div>
+</section>
 
-  <p class="small">
-    Produktene varierer i funksjon. Noen har ekte adaptiv notch, mens andre hovedsakelig
-    tilbyr noise reduction, justerbart audio-båndpass eller manuelle notch-filtre.
+<nav class="toc">
+  <h2>Innhold</h2>
+  <ol>
+    <li>
+      <a href="#del1">Del I – Oversikt, eksisterende løsninger og SmartANF-konseptet</a>
+      <ol>
+        <li><a href="#s1">Problemet i SSB-mottak</a></li>
+        <li><a href="#s2">ANF er ikke det samme som ANC</a></li>
+        <li><a href="#s3">Typisk inline-konfigurasjon</a></li>
+        <li><a href="#s4">Eksisterende produkter</a></li>
+        <li><a href="#s5">SmartANF-konseptet</a></li>
+        <li><a href="#s6">Windows-PC som første prototype</a></li>
+      </ol>
+    </li>
+    <li>
+      <a href="#del2">Del II – Teknisk fordypning: DSP, adaptiv filtrering og moderne AI/ML</a>
+      <ol start="7">
+        <li><a href="#s7">Digital notchfilterteori</a></li>
+        <li><a href="#s8">Adaptiv notchfiltrering</a></li>
+        <li><a href="#s9">Tonedeteksjon og frekvensestimering</a></li>
+        <li><a href="#s10">Fler-tone tracking</a></li>
+        <li><a href="#s11">Tale, CW og interferens</a></li>
+        <li><a href="#s12">CW PROTECT</a></li>
+        <li><a href="#s13">Rollen til moderne AI og maskinlæring</a></li>
+        <li><a href="#s14">Språkmodeller hører ikke hjemme i sanntidskjeden</a></li>
+        <li><a href="#s15">TinyML og Edge AI</a></li>
+        <li><a href="#s16">Maskinvare</a></li>
+        <li><a href="#s17">Latens</a></li>
+        <li><a href="#s18">Filterartefakter, Q og retuning</a></li>
+        <li><a href="#s19">Foreslått sanntidsarkitektur</a></li>
+        <li><a href="#s20">Programvareprototype og brukergrensesnitt</a></li>
+        <li><a href="#s21">Hvordan bør systemet testes?</a></li>
+        <li><a href="#s22">Samlet vurdering</a></li>
+      </ol>
+    </li>
+    <li><a href="#litteratur">Litteratur og tekniske kilder</a></li>
+  </ol>
+</nav>
+
+<!-- ===================== DEL I ===================== -->
+
+<div class="part" id="del1">
+  <span class="part-label">Del I</span>
+  <h2>Oversikt, eksisterende løsninger og SmartANF-konseptet</h2>
+  <p>Praktisk innføring. Ingen forkunnskaper i signalbehandling kreves.</p>
+</div>
+
+<section class="card" id="s1">
+  <h3><span class="num">1.</span>Problemet i SSB-mottak</h3>
+  <p>
+    Under SSB-mottak havner det med jevne mellomrom en uønsket bærebølge midt i talebåndet.
+    I høyttaleren oppfattes den som en stabil eller langsomt drivende fløytetone – en
+    <em>heterodyn</em>. Kilden kan være en ubemannet bærebølge, en feiljustert sender, en
+    switchmodeforsyning, en ADSL- eller PLC-kilde, eller en bærebølge fra nabokanalen.
+  </p>
+  <p>
+    Tonen behøver ikke å være sterk for å være slitsom. Talen er fortsatt der, men etter en
+    time med en tone på 1400 Hz i hodetelefonene er operatøren rett og slett trøtt.
+  </p>
+  <p>
+    De fleste moderne transceivere har et manuelt NOTCH-filter. Det virker, men krever at
+    operatøren selv finner riktig frekvens og justerer filteret – og gjør det på nytt hver
+    gang tonen flytter seg eller en ny dukker opp. Et
+    <strong>automatisk notchfilter (ANF)</strong> gjør dette selv: finner tonen, legger et
+    smalt filter over den, og følger den dersom frekvensen driver.
   </p>
 </section>
 
-<section class="card good">
-  <h2>Kan vi bygge en bedre, moderne versjon?</h2>
-  <p><strong>Ja, og det er fullt realistisk.</strong></p>
-  <p>
-    Det interessante er at man ikke trenger en stor AI-modell eller et kraftig grafikkort
-    for selve notch-funksjonen. Klassisk digital signalbehandling er allerede svært godt egnet
-    til oppgaven.
-  </p>
-</section>
+<section class="card" id="s2">
+  <h3><span class="num">2.</span>ANF er ikke det samme som ANC</h3>
+  <p>To forkortelser som ofte blandes sammen, men som betyr helt forskjellige ting:</p>
 
-<section class="card">
-  <h2>Grunnprinsippet</h2>
-  <pre>
-Audio fra transceiver
-        │
-        ▼
-       ADC
-        │
-        ▼
- FFT / spektralanalyse / tonedetektor
-        │
-        ▼
- "Finnes det en smal og stabil tone?"
-        │
-        ├── Nei → behold signalet
-        │
-        └── Ja
-             │
-             ▼
-     Automatisk notch-filter
-             │
-             ▼
-            DAC
-             │
-             ▼
-  hodetelefoner / høyttaler
-  </pre>
-
-  <p>
-    Systemet kan for eksempel oppdage en tone på 1468 Hz, opprette et svært smalt notch-filter
-    på 1468 Hz og automatisk flytte det dersom tonen driver til 1470, 1472 eller 1475 Hz.
-  </p>
-</section>
-
-<section class="card">
-  <h2>Flere toner samtidig</h2>
-  <p>
-    En moderne løsning kan ha flere automatiske notch-filtre samtidig.
-  </p>
-  <pre>
-SSB audio 300–3000 Hz
-
-   tale        tone #1        tale        tone #2
-───────▲──────────▲────────────▲────────────▲──────
-                1187 Hz                    2316 Hz
-
-                   ↓                         ↓
-               NOTCH 1                   NOTCH 2
-  </pre>
-
-  <p>
-    Man kan for eksempel ha 4, 8 eller flere notch-filtre som opprettes og fjernes dynamisk.
-  </p>
-</section>
-
-<section class="card">
-  <h2>Hvordan skille forstyrrelse fra tale eller CW?</h2>
-  <p>
-    Dette er den mest interessante delen av prosjektet.
-    En ren heterodyne er vanligvis:
-  </p>
-  <ul>
-    <li>svært smalbåndet,</li>
-    <li>stabil i frekvens,</li>
-    <li>stabil over relativt lang tid,</li>
-    <li>nesten sinusformet.</li>
-  </ul>
-
-  <p>
-    Tale oppfører seg annerledes. Formanter, grunnfrekvens, harmoniske og amplitude endres
-    kontinuerlig.
-  </p>
-
-  <p>
-    CW er også en tone, men har et tydelig tidsmønster med tone, pause, tone, pause.
-    Et smart system kan derfor unngå å fjerne ønsket CW.
-  </p>
-</section>
-
-<section class="card">
-  <h2>Hvor kan AI brukes?</h2>
-  <p>
-    AI bør etter min vurdering ikke utføre selve notch-filtreringen.
-    Det er bedre å la vanlig DSP gjøre dette.
-  </p>
-
-  <p>
-    AI eller maskinlæring kan i stedet fungere som en liten klassifikator som svarer på:
-  </p>
-
-  <pre>
-Er dette:
-
-[ ] tale
-[ ] CW
-[ ] heterodyne / konstant bærebølge
-[ ] annen smalbåndet interferens
-  </pre>
-
-  <p>
-    Klassifikatoren kan analysere noen få FFT-vinduer eller et lite spektrogram.
-    En slik modell kan være svært liten og trenger ikke noe kraftig GPU.
-  </p>
-</section>
-
-<section class="card">
-  <h2>Aktuelle DSP-metoder</h2>
-  <p>Flere velkjente metoder kan brukes:</p>
-  <div>
-    <span class="tag">FFT peak tracking</span>
-    <span class="tag">Goertzel</span>
-    <span class="tag">LMS</span>
-    <span class="tag">Normalized LMS</span>
-    <span class="tag">RLS</span>
-    <span class="tag">Adaptive IIR notch</span>
-    <span class="tag">Biquad notch filters</span>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Begrep</th>
+          <th>Hva det betyr</th>
+          <th>Hva det gjør med signalet</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ANF</strong><br><span class="small">Automatic Notch Filter</span></td>
+          <td>Automatisk smalbåndet notchfilter i mottakerens lydkjede.</td>
+          <td>Fjerner én eller flere <em>smale</em> frekvenskomponenter – typisk stabile toner – og lar resten av spekteret stå urørt.</td>
+        </tr>
+        <tr>
+          <td><strong>ANC</strong><br><span class="small">Active Noise Cancellation</span></td>
+          <td>Aktiv støydemping, kjent fra hodetelefoner.</td>
+          <td>Måler omgivelseslyd med mikrofon og sender ut et motfasesignal i luften. Har ingenting med mottakerens lydsignal å gjøre.</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
+  <div class="box viktig">
+    <span class="box-title">Viktig</span>
+    <p>
+      ANC arbeider på lyden <em>rundt</em> operatøren. ANF arbeider på lyden <em>fra</em>
+      mottakeren. Dette prosjektet handler utelukkende om det siste. En tredje kategori,
+      <em>støyreduksjon</em>, er heller ikke det samme – se <a href="#s4">seksjon 4</a>.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s3">
+  <h3><span class="num">3.</span>Typisk inline-konfigurasjon</h3>
   <p>
-    En god løsning vil sannsynligvis kombinere spektralanalyse med en bank av adaptive
-    notch-filtre.
+    En ekstern lydprosessor kobles mellom transceiverens lydutgang og høyttaleren eller
+    hodetelefonene, uten inngripen i radioen:
+  </p>
+
+  <figure>
+<pre>
+TRANSCEIVER
+    │
+    ▼
+AF / hodetelefon- / høyttalerutgang
+    │
+    ▼
+SmartANF / ekstern DSP
+    │
+    ▼
+Hodetelefoner / høyttaler
+</pre>
+    <figcaption>Prosessoren ligger i lydveien og er uavhengig av radiomodell og fabrikat.</figcaption>
+  </figure>
+
+  <p>
+    Fordelen er at løsningen virker med enhver radio som har en lydutgang, også eldre utstyr
+    uten moderne DSP. Ulempen er at prosessoren bare ser demodulert lyd: den har ingen
+    tilgang til mellomfrekvensen, til AGC-informasjon eller til hvilken modus radioen står i.
+    Alt må utledes fra lydsignalet alene, eventuelt supplert med at operatøren velger
+    driftsmodus manuelt.
   </p>
 </section>
 
-<section class="card">
-  <h2>Trenger vi en kraftig PC?</h2>
+<section class="card" id="s4">
+  <h3><span class="num">4.</span>Eksisterende produkter</h3>
+  <p>
+    Ekstern DSP i lydveien er en etablert løsning i amatørradio, og produktene under viser at
+    sanntidsbehandling av mottakerlyd lar seg gjøre i en liten separat enhet. De løser
+    imidlertid <em>ikke</em> samme oppgave. Tabellen gjengir bare funksjoner som produsenten
+    selv dokumenterer.
+  </p>
 
-  <table>
-    <tr>
-      <th>Plattform</th>
-      <th>Egnethet</th>
-    </tr>
-    <tr>
-      <td>Windows-PC</td>
-      <td>Meget god for første prototype, analyse, GUI og testing.</td>
-    </tr>
-    <tr>
-      <td>Raspberry Pi</td>
-      <td>Mer enn kraftig nok for realtime audio DSP.</td>
-    </tr>
-    <tr>
-      <td>Teensy 4.1</td>
-      <td>Svært godt egnet som selvstendig DSP-boks.</td>
-    </tr>
-    <tr>
-      <td>STM32H7</td>
-      <td>Meget godt egnet til profesjonell embedded DSP.</td>
-    </tr>
-    <tr>
-      <td>RP2350 / Pico</td>
-      <td>Mulig for enklere varianter.</td>
-    </tr>
-    <tr>
-      <td>RTX GPU</td>
-      <td>Ikke nødvendig for denne oppgaven.</td>
-    </tr>
-  </table>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Produkt</th>
+          <th>Dokumentert notchfunksjon</th>
+          <th>Dokumentert støyreduksjon</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Timewave DSP-599zx</strong></td>
+          <td>Både «Heterodyne Eliminator – Multiple Automatic Notch» og manuell notch, oppgitt til inntil 50 dB demping over hele det valgte båndpassområdet, med maksimal forsinkelse 5 ms [<a href="#r10">10</a>].</td>
+          <td>Adaptiv, i to varianter (random og variable noise reduction), oppgitt til inntil 20 dB [<a href="#r10">10</a>].</td>
+        </tr>
+        <tr>
+          <td><strong>West Mountain Radio CLRdsp</strong><br><span class="small">ClearSpeech</span></td>
+          <td>Ingen automatisk notch dokumentert som egen funksjon. Databladet oppgir adaptiv demping av enkelttone på over 50 dB [<a href="#r11">11</a>].</td>
+          <td>Adaptiv støyreduksjon for tale og CW. Produsenten oppgir at enheten gjenkjenner CW-signalets periodiske natur og lar det passere [<a href="#r11">11</a>].</td>
+        </tr>
+        <tr>
+          <td><strong>bhi Dual In-Line</strong></td>
+          <td>Ingen adaptiv eller automatisk notch dokumentert. Produsenten oppgir tonedemping inntil 65 dB [<a href="#r12">12</a>].</td>
+          <td>Åtte valgbare filternivåer med 8–40 dB støyreduksjon. Oppgitt latens 38 ms [<a href="#r12">12</a>].</td>
+        </tr>
+        <tr>
+          <td><strong>SOTABEAMS WOLFWAVE</strong></td>
+          <td>Ti uavhengig justerbare manuelle notchfiltre, i tillegg til en «adaptive tone eliminator» som ifølge produsenten fjerner bærebølger, men lar CW stå igjen [<a href="#r13">13</a>].</td>
+          <td>Adaptiv støyreduksjon med 100 nivåer, justerbart båndpass 50 Hz – 5 kHz [<a href="#r13">13</a>].</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box viktig">
+    <span class="box-title">Terminologien må holdes adskilt</span>
+    <p>
+      <strong>Støyreduksjon</strong>, <strong>adaptiv støyreduksjon</strong>,
+      <strong>manuell notch</strong> og <strong>automatisk adaptiv notch</strong> er fire
+      forskjellige funksjoner, og markedsføringstekster skiller dem sjelden tydelig.
+    </p>
+    <p>
+      Bredbåndet støyreduksjon angriper <em>bakgrunnsstøyen</em> og etterlater ofte en
+      metallisk klang på talen. Et notchfilter angriper en <em>enkelt frekvens</em> og lar
+      resten av spekteret være. En manuell notch må stilles av operatøren. Bare en automatisk
+      adaptiv notch finner og følger tonen selv.
+    </p>
+    <p>
+      En enhet med utmerket støyreduksjon kan altså være helt uten automatisk notch – og
+      omvendt. Av enhetene over er det bare Timewave og WOLFWAVE som dokumenterer en
+      automatisk eller adaptiv tonefjerner. Et produkt bør bare tilskrives egenskaper som er
+      dokumentert av produsenten.
+    </p>
+  </div>
+
+  <div class="box merknad">
+    <span class="box-title">Teknisk merknad</span>
+    <p>
+      WOLFWAVEs adaptive tonefjerner er det nærmeste dokumenterte forbildet for SmartANF:
+      den skal fjerne bærebølger og samtidig la CW passere [<a href="#r13">13</a>]. Sammen
+      med ClearSpeechs dokumenterte CW-gjenkjenning [<a href="#r11">11</a>] viser dette at
+      selve nøkkelmekanismen – å skille en kontinuerlig tone fra en tastet tone – allerede
+      er realisert kommersielt.
+    </p>
+  </div>
 </section>
 
-<section class="card">
-  <h2>Beste første steg: en PC-prototype</h2>
-  <pre>
+<section class="card" id="s5">
+  <h3><span class="num">5.</span>SmartANF-konseptet</h3>
+  <p>
+    SmartANF analyserer lydspekteret kontinuerlig og oppretter et smalt notchfilter når det
+    finner en vedvarende, smalbåndet kandidat som sannsynligvis er interferens.
+  </p>
+
+  <h4>Én stabil tone</h4>
+<pre>
+Detektert tone : 1468,2 Hz
+stabilitet     : høy
+båndbredde     : svært smal
+varighet       : 1,8 s
+
+→ opprett NOTCH ved 1468,2 Hz
+</pre>
+
+  <h4>Frekvensdrift</h4>
+  <p>
+    Bærebølger står sjelden helt stille. Temperaturdrift i en billig sender, eller drift i
+    egen mottakeroscillator, gjør at tonen vandrer. Et fast filter mister den etter få
+    minutter:
+  </p>
+
+  <figure>
+<pre>
+1468 Hz  →  1469 Hz  →  1471 Hz  →  1474 Hz
+   │           │           │           │
+   ▼           ▼           ▼           ▼
+NOTCH       NOTCH       NOTCH       NOTCH
+</pre>
+    <figcaption>Filteret stilles kontinuerlig etter det estimerte frekvenstallet.</figcaption>
+  </figure>
+
+  <p>
+    Sporingen må være rask nok til å følge ekte drift, men ikke så aggressiv at den begynner
+    å jage formanter eller kortvarige topper i talen.
+  </p>
+
+  <h4>Flere toner samtidig</h4>
+  <p>
+    På et fullt bånd er det sjelden bare én tone. SmartANF opererer derfor med en
+    <em>bank</em> av notchfiltre som opprettes og fjernes dynamisk:
+  </p>
+
+  <figure>
+<pre>
+Tone #1  →  1187 Hz  →  NOTCH 1
+Tone #2  →  2316 Hz  →  NOTCH 2
+Tone #3  →  2674 Hz  →  NOTCH 3
+</pre>
+    <figcaption>Hver bekreftet tone får sitt eget filter.</figcaption>
+  </figure>
+
+  <h4>Automatisk opprydding</h4>
+  <p>
+    Når en forstyrrelse forsvinner, skal filteret <em>fjernes igjen</em> – etter en kort
+    hystereseperiode, slik at kortvarig fading ikke utløser unødvendig omkobling. Uten
+    opprydding ender man etter en times lytting opp med et lydbånd fullt av permanente hull
+    som ikke lenger har noen hensikt, og som gradvis tapper talen for kvalitet. Automatisk
+    fjerning er like viktig som automatisk oppretting.
+  </p>
+
+  <div class="box merknad">
+    <span class="box-title">Teknisk merknad</span>
+    <p>
+      Antall samtidige filtre bør være begrenset og konfigurerbart – typisk 1, 2, 4 eller 8.
+      Uten en øvre grense vil et system som feiltolker tale som forstyrrelse gradvis kunne
+      legge notchfiltre over hele talebåndet.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s6">
+  <h3><span class="num">6.</span>Windows-PC som første prototype</h3>
+  <p>
+    Den mest rasjonelle rekkefølgen er å bygge systemet som et PC-program først, og deretter
+    vurdere en frittstående boks. En PC gir umiddelbar tilgang til spektrumvisning, logging,
+    opptak, testfiler og rask eksperimentering – alt som trengs for å finne ut om algoritmen
+    i det hele tatt virker.
+  </p>
+
+  <figure>
+<pre>
 Transceiver
     │
     ▼
-USB audio interface
+USB-lydgrensesnitt
     │
     ▼
 ┌──────────────────────────────┐
-│ Windows 11                   │
+│ Windows 11 – SmartANF        │
 │                              │
-│ SMART ANF                    │
-│                              │
-│ Spectrum analyzer            │
-│ Tone detector                │
-│ Automatic tracking           │
-│ Adaptive notch bank          │
-│ Speech / CW protection       │
+│ spektrum / fossefall         │
+│ tonedetektor                 │
+│ fler-tone tracker            │
+│ adaptiv notchbank            │
+│ SSB / CW-beskyttelse         │
+│ logging / A-B-testing        │
 └──────────────────────────────┘
     │
     ▼
-USB audio output
+USB-lydutgang
     │
     ▼
-Hodetelefoner / aktiv høyttaler
-  </pre>
+Hodetelefoner / høyttaler
+</pre>
+    <figcaption>Prototypeoppsett med standard USB-lydkort i begge ender.</figcaption>
+  </figure>
+
+  <div class="grid">
+    <div class="mini">
+      <div class="kpi">Første steg</div>
+      Python + NumPy + SciPy + sounddevice + PySide/PyQt
+    </div>
+    <div class="mini">
+      <div class="kpi">Produksjonsversjon</div>
+      C++ eller Rust + WASAPI/PortAudio + optimalisert DSP
+    </div>
+  </div>
+
+  <div class="box konklusjon">
+    <span class="box-title">Konklusjon</span>
+    <p>
+      Det trengs <strong>ikke</strong> noe kraftig grafikkort til dette. Lyd-DSP på 48 kHz
+      med noen få titalls filtre og én FFT per blokk er en oppgave i størrelsesorden promille
+      av hva en moderne prosessorkjerne kan levere. En GPU tilfører ingenting til denne
+      oppgaven – verken i prototypen eller i sluttproduktet.
+    </p>
+  </div>
+
+  <a class="toplink" href="#top">↑ Til toppen</a>
 </section>
 
-<section class="card">
-  <h2>Forslag til brukergrensesnitt</h2>
-  <p>Programmet kan vise spektrum og automatisk markere tonene som fjernes:</p>
+<!-- ===================== DEL II ===================== -->
 
-  <pre>
-SMART ANF
+<div class="part" id="del2">
+  <span class="part-label">Del II</span>
+  <h2>Teknisk fordypning: DSP, adaptiv filtrering og moderne AI/ML</h2>
+  <p>Forutsetter kjennskap til grunnleggende digital signalbehandling.</p>
+</div>
 
-300 Hz                              3000 Hz
-│────────────────────────────────────────│
+<section class="card" id="s7">
+  <h3><span class="num">7.</span>Digital notchfilterteori</h3>
+  <p>
+    Et notchfilter er et svært smalt stoppbåndfilter. En andreordens digital IIR-struktur
+    plasserer nullpunktene nøyaktig på enhetssirkelen ved den frekvensen som skal fjernes, og
+    polene på samme vinkel, men litt innenfor:
+  </p>
 
-Spectrum:
-▂▃▂▂▅▃▂▂▂▂████▂▃▂▂▂▂▂████▃▂▂▂
+  <div class="eq">
+    H(z) =
+    (1 − 2·cos(ω<sub>0</sub>)·z<sup>−1</sup> + z<sup>−2</sup>)
+    /
+    (1 − 2r·cos(ω<sub>0</sub>)·z<sup>−1</sup> + r<sup>2</sup>·z<sup>−2</sup>)
+  </div>
 
-             ▼             ▼
-           1274 Hz       2237 Hz
-
-Detected tones:
-
-#1 1274.2 Hz   -31 dB   stability 99.3 %
-   AUTO NOTCH      attenuation 45 dB
-
-#2 2237.8 Hz   -38 dB   stability 97.8 %
-   AUTO NOTCH      attenuation 40 dB
-  </pre>
-
-  <p>Mulige kontroller:</p>
+  <h4>Parametrene</h4>
   <ul>
-    <li>AUTO / MANUAL / FREEZE</li>
-    <li>SSB / CW</li>
-    <li>CW PROTECT</li>
-    <li>Maksimalt antall notch-filtre: 1 / 2 / 4 / 8</li>
-    <li>Notch depth: 20 / 40 / 60 dB</li>
-    <li>Notch width: 10 / 25 / 50 / 100 Hz</li>
+    <li>
+      <strong>ω<sub>0</sub></strong> – normalisert vinkelfrekvens,
+      <code>ω₀ = 2π·f₀/f_s</code>. En tone på 1468 Hz ved 48 kHz gir
+      <code>ω₀ ≈ 0,1921 rad</code>.
+    </li>
+    <li>
+      <strong>Nullpunktene</strong> ligger på enhetssirkelen ved <code>e<sup>±jω₀</sup></code>.
+      Det er dette som gir teoretisk uendelig demping nøyaktig ved notchfrekvensen.
+    </li>
+    <li>
+      <strong>Polene</strong> ligger ved <code>r·e<sup>±jω₀</sup></code>, altså på samme
+      vinkel, men med radius <code>r &lt; 1</code>. De trekker responsen tilbake mot 1 like
+      utenfor notchen og bestemmer dermed hvor smal den blir.
+    </li>
+    <li>
+      <strong>r</strong> – polradius, typisk mellom 0,95 og 0,999. Jo nærmere 1, desto
+      smalere notch.
+    </li>
+    <li>
+      <strong>Båndbredde og Q</strong> – −3 dB-båndbredden følger tilnærmet
+      <code>BW ≈ (1 − r)·f_s/π</code>, og <code>Q = f₀/BW</code>.
+    </li>
   </ul>
+
+  <p>
+    Med <code>f_s = 48 kHz</code> gir <code>r = 0,999</code> en båndbredde i størrelsesorden
+    15 Hz, mens <code>r = 0,99</code> gir omtrent 150 Hz. Forskjellen er dramatisk for
+    lyttekvaliteten.
+  </p>
+
+  <h4>Hvorfor et smalt notchfilter ikke ødelegger talen</h4>
+  <p>
+    Tale i SSB-båndet 300–3000 Hz er bredbåndet og i kontinuerlig endring. Energien fordeler
+    seg over formanter som er flere hundre hertz brede, og informasjonen ligger i hvordan
+    disse formantene beveger seg over tid – ikke i én enkelt frekvenslinje. Et filter som
+    fjerner et bånd på 10–20 Hz tar derfor bort en forsvinnende liten del av taleenergien.
+  </p>
+  <p>
+    En heterodyn er det motsatte: all energien er konsentrert i én linje. Forholdet mellom
+    hva man vinner og hva man taper er derfor svært gunstig – forutsatt at filteret er smalt
+    nok og treffer riktig frekvens.
+  </p>
+
+  <div class="box viktig">
+    <span class="box-title">Høy Q er ikke gratis</span>
+    <p>
+      Kompromisset ligger ikke i lyttekvaliteten, men i dynamikken. Et svært smalt filter
+      (<code>r → 1</code>) har lang impulsrespons, bruker lengre tid på å sette seg, reagerer
+      tregere når tonen flytter seg, og er mer følsomt for feil i frekvensestimatet. Et
+      bredere filter følger raskere, men spiser mer av talen. En praktisk løsning er å starte
+      bredt for rask innfanging og deretter snevre inn når estimatet har stabilisert seg.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s8">
+  <h3><span class="num">8.</span>Adaptiv notchfiltrering</h3>
+  <p>
+    Å beregne filterkoeffisienter for en <em>kjent</em> frekvens er trivielt. Utfordringen er
+    at frekvensen verken er kjent på forhånd eller konstant. Det finnes flere veletablerte
+    familier av algoritmer for dette.
+  </p>
+
+  <h4>LMS</h4>
+  <p>
+    Least Mean Squares oppdaterer vektvektoren proporsjonalt med det momentane feilsignalet:
+  </p>
+
+  <div class="eq">w(n+1) = w(n) + μ·e(n)·x(n)</div>
+
+  <ul>
+    <li><strong>μ (steglengde)</strong> styrer hvor store steg algoritmen tar. Stor μ gir rask konvergens, men større stasjonær feil og risiko for ustabilitet.</li>
+    <li><strong>Konvergens</strong> er tiden algoritmen bruker på å nå en brukbar løsning.</li>
+    <li><strong>Residualfeil</strong> er den gjenværende feilen etter konvergens; med LMS er den proporsjonal med μ.</li>
+    <li><strong>Stabilitet</strong> krever at μ holdes under en grense som avhenger av inngangssignalets effekt – et reelt problem når nivået varierer, slik det gjør med AGC og fading.</li>
+    <li><strong>Sporingsevne</strong> er evnen til å følge en frekvens som endrer seg. Den står i direkte konflikt med lav residualfeil: begge styres av μ, men i hver sin retning.</li>
+  </ul>
+
+  <p>
+    Xiao og Tadokoro viste at LMS-estimatoren for en sinus med kjent frekvens i praksis
+    oppfører seg som et IIR-notchfilter, og analyserte både konvergens og
+    middelkvadratfeil – også for flerfrekvenstilfellet [<a href="#r5">5</a>]. Det er nettopp
+    denne broen mellom «adaptiv estimator» og «notchfilter» som gjør LMS relevant her.
+  </p>
+
+  <h4>NLMS</h4>
+  <p>
+    Normalized LMS normaliserer steglengden mot inngangseffekten og blir dermed langt mindre
+    følsom for nivåvariasjoner. For en mottaker med AGC er dette en vesentlig praktisk
+    fordel. Grunnkompromisset mellom konvergenshastighet og sporingsevne består likevel.
+  </p>
+
+  <h4>RLS</h4>
+  <p>
+    Recursive Least Squares konvergerer klart raskere, men til høyere beregningskostnad –
+    <code>O(N²)</code> mot <code>O(N)</code> per sample – og med større krav til numerisk
+    omhu. Teorigrunnlaget for begge familiene er grundig behandlet hos Haykin
+    [<a href="#r7">7</a>] og Widrow &amp; Stearns [<a href="#r8">8</a>].
+  </p>
+
+  <h4>Adaptiv IIR-notch</h4>
+  <p>
+    For nettopp <em>sinusformet</em> interferens finnes en mer direkte vei: et IIR-notchledd
+    med bundne poler og nullpunkter, der man adapterer én enkelt parameter – frekvensen – i
+    stedet for en hel vektvektor. Nehorai viste at dette kan gjøres med et minimalt antall
+    parametre, og at variansen i frekvensestimatet blir av samme størrelsesorden som
+    Cramér–Rao-grensen [<a href="#r1">1</a>]. Regalia videreutviklet den gitterbaserte
+    varianten med bedre numeriske egenskaper [<a href="#r2">2</a>], og Cho, Choi og Lee
+    anvendte tilsvarende struktur på adaptiv linjeforsterkning [<a href="#r3">3</a>].
+  </p>
+  <p>
+    For en <em>bank</em> av notchfiltre er arbeidet til Wang, Gu og Lin direkte relevant: de
+    konstruerer et adaptivt IIR-notchfilter med flere identiske båndbredder ved hjelp av en
+    forenklet allpass-struktur, nettopp for å undertrykke flere sinusformede komponenter
+    samtidig [<a href="#r6">6</a>].
+  </p>
+
+  <h4>Sinusoidal parameterestimering</h4>
+  <p>
+    En helt annen tilnærming er å estimere tonens frekvens, amplitude og fase eksplisitt, og
+    deretter <em>beregne</em> filterkoeffisientene direkte. Rife og Boorstyn utledet
+    maksimum-likelihood-estimatoren og de tilhørende Cramér–Rao-grensene for dette
+    [<a href="#r4">4</a>]. Fordelen er at man får et eksplisitt frekvenstall som kan vises for
+    operatøren, logges og brukes til sporing – noe en ren adaptiv filterstruktur ikke gir
+    uten videre.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Metode</th><th>Fordeler</th><th>Ulemper</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>LMS</td>
+          <td>Enkel, svært lite regnearbeid, godt forstått.</td>
+          <td>Langsom konvergens; μ må avstemmes mot signalnivå.</td>
+        </tr>
+        <tr>
+          <td>NLMS</td>
+          <td>Robust mot nivåvariasjoner, enkel å stille inn.</td>
+          <td>Fortsatt kompromiss mellom konvergens og sporing.</td>
+        </tr>
+        <tr>
+          <td>RLS</td>
+          <td>Rask konvergens, god ved raske endringer.</td>
+          <td>Høyere kompleksitet og krav til numerisk stabilitet.</td>
+        </tr>
+        <tr>
+          <td>Adaptiv IIR-notch</td>
+          <td>Svært effektiv nettopp for sinusformet interferens; få parametre.</td>
+          <td>Krever stabil innstillingsalgoritme og omhu ved polplassering.</td>
+        </tr>
+        <tr>
+          <td>Sinusoidal estimering</td>
+          <td>Gir eksplisitt frekvens som kan spores, vises og logges.</td>
+          <td>Krever transformasjon og etterbehandling; mer regning per beslutning.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box merknad">
+    <span class="box-title">Nyere arbeid på selve sporingskompromisset</span>
+    <p>
+      Kompromisset mellom rask sporing og lav estimatjitter er fortsatt gjenstand for
+      forskning. Soner, Uzun og Uzun foreslår å bruke adaptive momenter – prinsippet fra
+      Adam-optimalisatoren i maskinlæring, med eksponentielt filtrerte første- og
+      andreordens gradientestimater – til å oppdatere frekvensestimatet i et adaptivt
+      notchfilter, og rapporterer raskere konvergens uten at variansen i stasjonær tilstand
+      øker [<a href="#r18">18</a>]. Arbeidet er gjort for GNSS-mottakere, ikke amatørradio,
+      men problemstillingen – å spore og fjerne en smalbåndet forstyrrelse i sanntid – er
+      den samme.
+    </p>
+  </div>
+
+  <div class="box viktig">
+    <span class="box-title">Viktig</span>
+    <p>
+      LMS er verken den eneste eller alltid den beste løsningen. For et system som skal
+      håndtere flere samtidige, drivende toner er en kombinasjon rimeligere: eksplisitt
+      spektralanalyse for å <em>finne</em> tonene, og en bank av adaptive notchledd for å
+      <em>fjerne</em> dem.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s9">
+  <h3><span class="num">9.</span>Tonedeteksjon og frekvensestimering</h3>
+
+  <h4>FFT og STFT</h4>
+  <p>
+    Korttids-Fouriertransformasjon gir hele spekteret i én operasjon og er det naturlige
+    utgangspunktet når man ikke vet hvor tonene ligger. Den gir også datagrunnlaget for
+    fossefallsvisning og for å spore topper over tid. Oppløsningen er knyttet til
+    vinduslengden:
+  </p>
+
+  <div class="eq">Δf = f<sub>s</sub> / N  →  48000 / 4096 ≈ 11,7 Hz</div>
+
+  <p>Sentrale forhold:</p>
+  <ul>
+    <li>
+      <strong>Binoppløsning.</strong> 11,7 Hz er langt grovere enn den presisjonen et
+      notchfilter på 15 Hz trenger. Rå bin-oppløsning er derfor ikke nok.
+    </li>
+    <li>
+      <strong>Vindusfunksjon.</strong> Rektangulært vindu gir kraftig spektral lekkasje.
+      Hann eller Blackman–Harris demper sidelobene betydelig, på bekostning av litt bredere
+      hovedlobe.
+    </li>
+    <li>
+      <strong>Spektral lekkasje.</strong> En tone som ikke faller nøyaktig på en bin smøres
+      utover nabobinene og kan feiltolkes som bredere enn den er. Dette betyr direkte at
+      båndbreddemålingen – et av de viktigste kriteriene i <a href="#s11">seksjon 11</a> –
+      blir upålitelig uten godt vindusvalg.
+    </li>
+    <li>
+      <strong>Overlapp.</strong> 50–75 % overlapp mellom vinduer gir jevnere tidsoppløsning
+      og hindrer at korte hendelser faller mellom to analyser.
+    </li>
+    <li>
+      <strong>Sub-bin-interpolasjon.</strong> Ved å interpolere over toppbinen og de to
+      nabobinene kommer man typisk ned i brøkdeler av en bin. Dette er en forutsetning for å
+      treffe med et smalt filter.
+    </li>
+  </ul>
+
+  <h4>Goertzel</h4>
+  <p>
+    Goertzel-algoritmen beregner én enkelt frekvenskomponent langt billigere enn en full FFT,
+    og er utmerket når frekvensene er kjent på forhånd – slik de er ved DTMF-deteksjon.
+  </p>
+
+  <div class="box viktig">
+    <span class="box-title">Viktig</span>
+    <p>
+      Klassisk Goertzel er derimot ikke noe godt førstevalg for å skanne et <em>ukjent</em>
+      spektrum. Skal man dekke 300–3000 Hz med tilstrekkelig oppløsning, må man kjøre svært
+      mange parallelle Goertzel-ledd, og da er en FFT både enklere og raskere. Goertzel hører
+      hjemme som <em>etterbehandling</em>: når FFT-en har pekt ut en kandidat, kan et
+      Goertzel-ledd følge nettopp den frekvensen billig og med høy oppløsning.
+    </p>
+  </div>
+
+  <h4>Autokorrelasjon</h4>
+  <p>
+    Autokorrelasjon avdekker periodisitet i tidsdomenet og er nyttig som støttekriterium: en
+    ren tone gir en markert og vedvarende topp, mens tale gir et langt mer sammensatt bilde.
+    Metoden brukes best sammen med spektralanalyse, ikke i stedet for.
+  </p>
+
+  <h4>Sinusoidale estimatorer</h4>
+  <p>
+    Når en kandidat er funnet, kan frekvensen forbedres kraftig med en dedikert estimator
+    [<a href="#r4">4</a>]. En praktisk kombinasjon er FFT for grovsøk, interpolasjon for
+    finsøk, og deretter kontinuerlig oppdatering fra det adaptive filteret selv.
+  </p>
+</section>
+
+<section class="card" id="s10">
+  <h3><span class="num">10.</span>Fler-tone tracking</h3>
+  <p>
+    Dette er kjernen i et system som skal fungere i praksis, og ikke bare på en enkelt
+    testfil. Én toppdeteksjon per FFT-ramme er ikke nok. Systemet må vedlikeholde en
+    <em>liste over spor</em>, der hvert spor representerer en kandidat som følges over tid.
+  </p>
+
+  <h4>Sportilstand</h4>
+  <p>Hvert spor bør minst inneholde:</p>
+  <ul>
+    <li><strong>frekvens</strong> – gjeldende beste estimat, med sub-bin-oppløsning</li>
+    <li><strong>amplitude</strong> – nivå i dBFS</li>
+    <li><strong>båndbredde</strong> – estimert bredde på toppen</li>
+    <li><strong>alder</strong> – hvor lenge sporet har eksistert</li>
+    <li><strong>persistens</strong> – andel av rammene sporet er bekreftet i</li>
+    <li><strong>frekvensdrift</strong> – endring i Hz per sekund</li>
+    <li><strong>konfidens</strong> – samlet mål på hvor sikkert dette er en forstyrrelse</li>
+    <li><strong>notchtilstand</strong> – <code>IDLE</code>, <code>CANDIDATE</code>, <code>NOTCHED</code> eller <code>RELEASING</code></li>
+  </ul>
+
+  <figure>
+<pre>
+Track 1
+  frekvens    = 1471,6 Hz
+  nivå        = −32 dBFS
+  alder       = 3,2 s
+  drift       = +0,6 Hz/s
+  båndbredde  = 7 Hz
+  konfidens   = 0,992
+  tilstand    = NOTCHED
+</pre>
+    <figcaption>Eksempel på et bekreftet spor som har fått tildelt et notchfilter.</figcaption>
+  </figure>
+
+  <h4>Hysterese</h4>
+  <p>
+    Uten hysterese blir systemet ubrukelig. Et notchfilter som slår inn og ut flere ganger i
+    sekundet – «flapping» – er langt mer irriterende enn tonen det skulle fjerne. Fire regler
+    er tilstrekkelige:
+  </p>
+  <ol>
+    <li>Et notchfilter opprettes <strong>aldri</strong> fra én enkelt FFT-ramme.</li>
+    <li>
+      Sporet må ha vært bekreftet i et minimum antall påfølgende rammer – i praksis
+      tilsvarende noen hundre millisekunder – og ha stabil frekvens før filteret settes inn.
+    </li>
+    <li>
+      Når tonen forsvinner, fjernes filteret <strong>ikke</strong> umiddelbart. Sporet går i
+      <code>RELEASING</code> og holdes en periode, slik at kortvarig fading ikke utløser
+      unødvendig omkobling.
+    </li>
+    <li>
+      Terskelen for å <em>opprette</em> et filter skal være strengere enn terskelen for å
+      <em>beholde</em> det. Denne asymmetrien er selve hysteresen.
+    </li>
+  </ol>
+
+  <div class="box merknad">
+    <span class="box-title">Teknisk merknad</span>
+    <p>
+      Sporlisten trenger også en tilordningsregel: når en ny topp dukker opp nær et
+      eksisterende spor, skal den knyttes til det sporet i stedet for å opprette et nytt. En
+      enkel avstandsterskel i frekvens, kombinert med det estimerte driftstallet, holder i
+      praksis.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s11">
+  <h3><span class="num">11.</span>Tale, CW og interferens</h3>
+  <p>
+    Dette er problemets vanskeligste del, og den viktigste beslutningsutfordringen. En naiv
+    toppdetektor ser bare at det finnes energi ved en bestemt frekvens, og vet ingenting om
+    hva operatøren ønsker å høre. Også ønskede signaler kan være tonale:
+  </p>
+  <ul>
+    <li>en vokal med kraftig formant som ligger stille et øyeblikk,</li>
+    <li>en person som plystrer, eller en testsinus,</li>
+    <li>CW som operatøren faktisk lytter til,</li>
+    <li>RTTY og andre FSK-signaler,</li>
+    <li>FT8 og annen datamodulasjon i lydbåndet,</li>
+    <li>kalibrerings- og sidetoner.</li>
+  </ul>
+
+  <p>Et brukbart system må derfor vurdere flere egenskaper enn nivå alene:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Egenskap</th><th>Hva den skiller</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Tidsmessig persistens</td><td>En heterodyn ligger i sekunder og minutter. En formant varer i titalls millisekunder.</td></tr>
+        <tr><td>Båndbredde</td><td>En ren bærebølge er noen få hertz bred. En formant er hundrevis.</td></tr>
+        <tr><td>Harmonisk struktur</td><td>Stemte talelyder har en grunntone med harmoniske. En heterodyn står alene.</td></tr>
+        <tr><td>Amplitudemodulasjon</td><td>Tale svinger kontinuerlig i nivå. En bærebølge er tilnærmet konstant.</td></tr>
+        <tr><td>Frekvensmodulasjon og drift</td><td>Tale beveger seg raskt i frekvens. En bærebølge driver langsomt og monotont.</td></tr>
+        <tr><td>Innsettings- og utfasingsmønster</td><td>CW har brå, regelmessige start og stopp. Tale har mykere overganger.</td></tr>
+        <tr><td>Spektral kontekst</td><td>Ligger det energi i nabobåndene samtidig, eller står toppen isolert?</td></tr>
+        <tr><td>Driftsmodus</td><td>Hva operatøren faktisk lytter etter – se <a href="#s12">seksjon 12</a>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Enkeltvis er ingen av disse tilstrekkelige. Kombinert gir de et brukbart
+    beslutningsgrunnlag – og det er nettopp denne kombinasjonen en liten klassifikator kan
+    håndtere bedre enn en håndskrevet terskelregel.
+  </p>
+</section>
+
+<section class="card" id="s12">
+  <h3><span class="num">12.</span>CW PROTECT</h3>
+  <p>
+    CW er også en tone. For en naiv ANF er en CW-sending og en heterodyn nesten identiske:
+    smal båndbredde, stabil frekvens, sinusformet. Uten en beskyttelsesmekanisme vil filteret
+    dempe akkurat det signalet operatøren forsøker å lese.
+  </p>
+  <p>Forskjellen ligger i tidsmønsteret:</p>
+
+  <figure>
+<pre>
+CW:         ▄▄▄  ▄  ▄▄▄▄▄   ▄  ▄▄▄     ▄
+            tone pause tone pause tone
+
+Heterodyn:  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+            kontinuerlig
+</pre>
+    <figcaption>Nøkkelen er tastingens av- og påslag, ikke frekvensen.</figcaption>
+  </figure>
+
+  <p>
+    Et system kan analysere fordelingen av tone- og pauselengder. Ved 20 ord per minutt er en
+    prikk omtrent 60 ms og en strek omtrent 180 ms, med tilsvarende pauser. Et signal med
+    energi som veksler i dette området er sannsynligvis tastet – og skal beskyttes.
+  </p>
+  <p>
+    At dette lar seg gjøre i praksis er ikke bare teori. West Mountain Radio oppgir at
+    ClearSpeech-prosessoren gjenkjenner CW-signalets periodiske natur og lar det passere
+    [<a href="#r11">11</a>], og SOTABEAMS beskriver tilsvarende at WOLFWAVEs adaptive
+    tonefjerner er ment å fjerne bærebølger, men la CW stå [<a href="#r13">13</a>].
+  </p>
+
+  <h4>Modusavhengige regler</h4>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Modus</th><th>Regel</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>SSB</strong></td>
+          <td>Aggressiv tonefjerning. Alt som er smalt og stabilt over tid er nesten sikkert uønsket. CW-beskyttelse aktiv som sikkerhetsnett.</td>
+        </tr>
+        <tr>
+          <td><strong>CW</strong></td>
+          <td>Svært konservativ. Bare toner som er kontinuerlige <em>og</em> ligger utenfor den aktuelle lyttetonen vurderes. Terskelen for persistens heves kraftig.</td>
+        </tr>
+        <tr>
+          <td><strong>DATA</strong></td>
+          <td>Notchfiltrering bør i praksis være av som standard. RTTY, FT8 og liknende <em>består</em> av smale toner, og enhver demping forringer dekodingen.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box viktig">
+    <span class="box-title">Viktig</span>
+    <p>
+      Morsedeteksjon løser ikke problemet alene. Svak CW under støygrensen, QSB som bryter
+      opp mønsteret, flere stasjoner som taster samtidig, eller maskinell CW med uvanlig
+      timing kan alle føre til feil klassifisering. CW PROTECT bør derfor betraktes som en
+      <em>beskyttelsesmekanisme</em> som hever terskelen for å filtrere – ikke som en garanti
+      for perfekt morsegjenkjenning. Operatøren må alltid kunne slå funksjonen av manuelt.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s13">
+  <h3><span class="num">13.</span>Rollen til moderne AI og maskinlæring</h3>
+
+  <div class="box viktig">
+    <span class="box-title">Viktig</span>
+    <p>
+      AI bør <strong>ikke</strong> ligge i den kritiske audiofiltersløyfen og skal ikke
+      erstatte selve notchfilteret. Filtreringen gjøres av klassisk, deterministisk DSP.
+    </p>
+  </div>
+
+  <p>Skillet gir en ren arbeidsdeling:</p>
+
+  <figure>
+<pre>
+DSP / STFT
+    │
+    ▼
+kandidattoner
+    │
+    ▼
+egenskapsuttrekking
+    │
+    ▼
+liten ML-klassifikator
+    │
+    ▼
+P(interferens)
+    │
+    ▼
+notchkontroller
+    │
+    ▼
+deterministisk DSP-filter
+</pre>
+    <figcaption>Maskinlæringen sitter i beslutningsleddet, ikke i signalveien.</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>ML svarer på:</strong> «Bør denne tonen fjernes?»</li>
+    <li><strong>DSP svarer på:</strong> «Hvordan fjernes den?»</li>
+  </ul>
+
+  <h4>Hvorfor denne separasjonen lønner seg</h4>
+  <ul>
+    <li>
+      <strong>Deterministisk filtrering.</strong> Filterets amplitude- og faserespons er
+      kjent, beregnet og reproduserbar. Ingen nevrale nett mellom lydinngang og lydutgang.
+    </li>
+    <li>
+      <strong>Lav latens.</strong> Lydveien inneholder bare biquad-ledd. Klassifikatoren kan
+      bruke hundrevis av millisekunder uten at lydforsinkelsen påvirkes – se
+      <a href="#s17">seksjon 17</a>.
+    </li>
+    <li>
+      <strong>Testbarhet.</strong> Et notchfilter kan verifiseres med et sveip og et
+      amplituderespons-plott. En ende-til-ende nevral lydprosessor kan ikke det på samme måte.
+    </li>
+    <li>
+      <strong>Forutsigbar oppførsel.</strong> Feiler klassifikatoren, blir konsekvensen at et
+      filter settes inn eller uteblir – ikke at lyden forvrenges av en modell som finner på
+      innhold som aldri var der.
+    </li>
+    <li>
+      <strong>Beskjedne maskinvarekrav.</strong> En klassifikator som tar en beslutning noen
+      få ganger i sekundet på en håndfull egenskaper er svært liten.
+    </li>
+  </ul>
+
+  <h4>Hva slags modell?</h4>
+  <p>
+    En liten CNN, en kompakt CRNN eller – ofte tilstrekkelig – en enkel egenskapsbasert
+    klassifikator som får inn toppbredde, periodisitet, frekvensdrift, spektral flathet,
+    harmonisk struktur og amplitudemodulasjon.
+  </p>
+  <p>
+    Denne tilnærmingen har direkte støtte i nyere arbeid. Soner, Aksoy og Halaçlı utleder
+    lette egenskaper fra et <em>virtuelt adaptivt notchfilter</em>, kombinerer dem med kjente
+    spektrale egenskaper, og viser at gradient-boostede beslutningstrær og andre kompakte
+    klassifikatorer gir høy treffsikkerhet for smalbåndet interferens innenfor
+    ressursbudsjettet til en innebygd plattform [<a href="#r19">19</a>]. Det er nøyaktig den
+    arkitekturen som foreslås her: DSP produserer egenskapene, en liten modell tar
+    beslutningen.
+  </p>
+</section>
+
+<section class="card" id="s14">
+  <h3><span class="num">14.</span>Språkmodeller hører ikke hjemme i sanntidskjeden</h3>
+
+  <div class="box feil">
+    <span class="box-title">Feil verktøy</span>
+    <p>
+      ChatGPT, Gemini, Claude, Qwen og andre store språkmodeller er ikke en fornuftig løsning
+      for sanntids lydbehandling i dette systemet. De er bygget for tekstsekvenser, ikke for å
+      ta en beslutning hver femte millisekund på en innebygd prosessor, og en nettverksbasert
+      modell innfører dessuten en forsinkelse som er flere størrelsesordener for stor.
+    </p>
+  </div>
+
+  <p>Skal maskinlæring brukes i signalkjeden, er dette de relevante alternativene:</p>
+  <div class="badges">
+    <span class="badge">lite CNN</span>
+    <span class="badge">CRNN</span>
+    <span class="badge">tiny spectrogram classifier</span>
+    <span class="badge">egenskapsbasert klassifikator</span>
+    <span class="badge">gradient-boostede trær</span>
+    <span class="badge">TinyML</span>
+    <span class="badge">TensorFlow Lite Micro</span>
+    <span class="badge">ONNX / TFLite</span>
+  </div>
+
+  <div class="box merknad">
+    <span class="box-title">Teknisk merknad</span>
+    <p>
+      Språkmodeller har derimot en helt reell plass <em>rundt</em> prosjektet: de kan bidra
+      til å utforme algoritmen, skrive og refaktorere programvaren, analysere logger fra
+      testkjøringer, generere testtilfeller og hjelpe med optimalisering. Det er en
+      utviklingsverktøyrolle, ikke en plass i signalveien.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s15">
+  <h3><span class="num">15.</span>TinyML og Edge AI</h3>
+  <p>
+    At en klassifikator kan kjøre på en mikrokontroller er ikke lenger et forskningsspørsmål.
+    Arm publiserte CMSIS-NN med optimaliserte nevralnettkjerner for Cortex-M og rapporterte om
+    lag 4,6 ganger høyere gjennomstrømning og 4,9 ganger bedre energieffektivitet sammenliknet
+    med en grunnleggende implementasjon [<a href="#r15">15</a>]. TensorFlow Lite Micro er
+    utviklet nettopp for inferens på innebygde systemer uten operativsystem, dynamisk
+    minneallokering eller standardbibliotek [<a href="#r16">16</a>], og det finnes publiserte
+    eksempler på sanntids lydklassifikasjon lokalt på en Cortex-M0+ med CMSIS-DSP og
+    TensorFlow Lite Micro [<a href="#r17">17</a>].
+  </p>
+
+  <p>Relevante byggeklosser:</p>
+  <ul>
+    <li><strong>CMSIS-DSP</strong> – optimaliserte biquad-, FFT-, MFCC- og vektorfunksjoner for Cortex-M [<a href="#r14">14</a>].</li>
+    <li><strong>CMSIS-NN</strong> – kvantiserte nevralnettkjerner for samme familie [<a href="#r15">15</a>].</li>
+    <li><strong>TensorFlow Lite Micro</strong> – inferensrammeverk for innebygde mål [<a href="#r16">16</a>].</li>
+  </ul>
+
+  <div class="box viktig">
+    <span class="box-title">Viktig</span>
+    <p>
+      Dette betyr <em>ikke</em> at en mikrokontroller kan trene en modell. Treningen gjøres på
+      PC med merkede opptak. Det som flyttes ut på den lille prosessoren er
+      <strong>inferensen</strong> – en kvantisert modell på noen få titalls kilobyte som
+      kjøres noen ganger i sekundet. Det er en fullt realistisk oppgave. Å forvente omfattende
+      læring eller tilpasning på selve enheten er det ikke.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s16">
+  <h3><span class="num">16.</span>Maskinvare</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Plattform</th><th>Rolle</th><th>Vurdering</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Windows-PC</strong></td>
+          <td>Forsknings- og prototypemiljø</td>
+          <td>Klart best for utvikling: umiddelbar visualisering, logging, opptak, A/B-testing og rask iterasjon. Naturlig førstevalg.</td>
+        </tr>
+        <tr>
+          <td><strong>Raspberry Pi</strong></td>
+          <td>Neste steg etter PC</td>
+          <td>Mer enn kraftig nok til lyd-DSP i sanntid, med Linux-lydstakk, USB-lyd og skjermmulighet. Et godt mellomtrinn mot en dedikert boks.</td>
+        </tr>
+        <tr>
+          <td><strong>Teensy 4.1</strong></td>
+          <td>Frittstående DSP-boks</td>
+          <td>Cortex-M7 med et modent lydbibliotek. Svært godt egnet til sanntids lydbehandling med lav latens.</td>
+        </tr>
+        <tr>
+          <td><strong>STM32H7</strong></td>
+          <td>Profesjonell innebygd løsning</td>
+          <td>Cortex-M7 med FPU, DMA og god periferi, samt full CMSIS-støtte. Naturlig valg dersom det skal lages et ordentlig produkt.</td>
+        </tr>
+        <tr>
+          <td><strong>RP2350</strong></td>
+          <td>Rimelig prototyping</td>
+          <td>Interessant og billig, men med mindre margin enn de kraftigere kontrollerne. Egnet for enklere varianter med færre samtidige filtre.</td>
+        </tr>
+        <tr>
+          <td><strong>GPU</strong></td>
+          <td>Kun eventuell modelltrening</td>
+          <td>Unødvendig i sluttproduktet. Verken filtreringen eller den lille klassifikatoren har nytte av en GPU under normal drift.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" id="s17">
+  <h3><span class="num">17.</span>Latens</h3>
+  <p>
+    Latens diskuteres ofte som én størrelse. I dette systemet er det to helt forskjellige
+    ting, og å blande dem fører til feil dimensjonering.
+  </p>
+
+  <h4>Lydtransport- og prosesseringslatens</h4>
+  <p>
+    Tiden fra en lyd kommer inn til den kommer ut igjen. Den bestemmes av blokkstørrelse og
+    bufring:
+  </p>
+
+  <div class="eq">f<sub>s</sub> = 48 kHz, blokk = 256 sampler → 256 / 48000 ≈ 5,33 ms</div>
+
+  <p>
+    Legger man til inn- og utbuffer, driverlag og omformere, ender man typisk i
+    størrelsesorden 10–30 ms totalt. Selve biquad-filtrene bidrar med neglisjerbar
+    forsinkelse, fordi de arbeider sample for sample.
+  </p>
+
+  <h4>Deteksjons- og beslutningslatens</h4>
+  <p>
+    Noe helt annet: tiden fra en tone dukker opp til systemet har <em>bestemt</em> at den skal
+    fjernes. Den bestemmes av FFT-vinduets lengde, av kravet til persistens og av
+    hysteresereglene – og ligger typisk i området 200–800 ms.
+  </p>
+
+  <div class="box merknad">
+    <span class="box-title">Teknisk merknad</span>
+    <p>
+      Dette er nøkkelen til hele arkitekturen: notchfilteret arbeider i lydveien med en liten
+      buffer, mens detektoren analyserer <em>lengre</em> vinduer parallelt. Beslutningen kan
+      altså ta et halvt sekund uten at lyden forsinkes med mer enn noen få millisekunder.
+      At den kontinuerlige lydstrømmen skulle være forsinket 800 ms, følger <em>ikke</em> av
+      at detektoren bruker 800 ms.
+    </p>
+  </div>
+
+  <h4>Et konkret referansepunkt</h4>
+  <p>
+    Timewaves datablad for DSP-599zx illustrerer poenget presist, fordi det oppgir
+    forsinkelse per filterblokk:
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Funksjon</th><th>Type</th><th>Oppgitt forsinkelse</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Heterodyneliminator (automatisk notch)</td><td>Adaptiv</td><td>5 ms maks</td></tr>
+        <tr><td>Støyreduksjon</td><td>Adaptiv</td><td>5 ms maks</td></tr>
+        <tr><td>Tale, høy-/lavpass</td><td>FIR, lineær fase</td><td>21 ms maks</td></tr>
+        <tr><td>Datafiltre (RTTY m.fl.)</td><td>FIR, lineær fase</td><td>30 ms maks</td></tr>
+        <tr><td>CW-filter, BW &gt; 20 Hz</td><td>FIR, lineær fase</td><td>34 ms maks</td></tr>
+        <tr><td>CW-filter, BW &lt; 20 Hz</td><td>FIR, lineær fase</td><td>58 ms maks</td></tr>
+      </tbody>
+    </table>
+    <p class="small">Kilde: Timewaves spesifikasjon for DSP-599zx [<a href="#r10">10</a>].</p>
+  </div>
+
+  <p>
+    Mønsteret er tydelig: den <em>adaptive notchfunksjonen</em> koster 5 ms, mens de smale
+    FIR-filtrene med lineær fase koster 21–58 ms. Et rekursivt notchledd er altså blant de
+    billigste blokkene man kan legge i lydveien – noe som støtter arkitekturen i
+    <a href="#s19">seksjon 19</a> direkte.
+  </p>
+
+  <h4>Hva som påvirker lydlatensen</h4>
+  <ul>
+    <li><strong>Blokkstørrelse</strong> – den dominerende faktoren.</li>
+    <li><strong>WASAPI-, ASIO- eller PortAudio-buffere</strong> – delt modus gir betydelig mer forsinkelse enn eksklusiv modus.</li>
+    <li><strong>USB-lyd</strong> – rammestruktur og pakking legger til noen millisekunder i hver retning.</li>
+    <li><strong>FFT-vinduslengde og overlapp</strong> – påvirker deteksjonslatensen, ikke lydlatensen, så lenge analysen kjører i egen tråd.</li>
+    <li><strong>Algoritmisk forsinkelse</strong> – FIR-filtre med lineær fase koster halve filterlengden; IIR-notchledd har ingen tilsvarende gruppeforsinkelse av betydning.</li>
+    <li><strong>ADC-, DAC- og eventuell samplerate-konvertering</strong> – et fast bidrag som avhenger av maskinvaren.</li>
+  </ul>
+
+  <p>
+    For ren SSB-lytting er moderat latens uproblematisk. Man lytter til en motstasjon, ikke til
+    seg selv. Situasjonen er en helt annen ved lokal medhør av eget sendersignal, der selv
+    20–30 ms oppleves som forstyrrende ekko. Til sammenlikning oppgir bhi 38 ms for sin
+    In-Line-modul [<a href="#r12">12</a>], noe som i praksis fungerer godt for mottak.
+  </p>
+</section>
+
+<section class="card" id="s18">
+  <h3><span class="num">18.</span>Filterartefakter, Q og retuning</h3>
+  <p>
+    Et notchfilter er ikke gratis. Rundt notchfrekvensen skjer det et raskt faseskift, og jo
+    smalere filteret er, desto brattere blir dette skiftet. Praktiske konsekvenser:
+  </p>
+  <ul>
+    <li>
+      <strong>Ringing.</strong> Et filter med høy Q har lang impulsrespons. Impulsstøy –
+      tennstøy, brytere, atmosfæriske smell – kan sette filteret i svingninger som høres som
+      en kort klang etter hvert smell.
+    </li>
+    <li>
+      <strong>Q som avveining.</strong> Høy Q gir smalt inngrep i talen, men mer ringing og
+      tregere innsvingning. Lav Q gir det motsatte.
+    </li>
+    <li>
+      <strong>Filtertransienter.</strong> Når et filter settes inn eller tas ut, hopper
+      tilstandsvariablene. Uten forholdsregler høres dette som et klikk.
+    </li>
+    <li>
+      <strong>Zipper-støy.</strong> Å oppdatere koeffisienter i diskrete, hørbare steg gir en
+      karakteristisk knitring – særlig når filteret følger en drivende tone.
+    </li>
+  </ul>
+
+  <h4>Omstilling uten artefakter</h4>
+  <p>
+    Flytter en tone seg fra 1470 Hz til 1530 Hz, skal koeffisientene ikke byttes brått i én
+    sample dersom det gir et hørbart smell. Aktuelle tiltak, som kan kombineres:
+  </p>
+  <ul>
+    <li><strong>Koeffisientglatting.</strong> Koeffisientene interpoleres over noen millisekunder i stedet for å settes direkte.</li>
+    <li><strong>Interpolasjon i parameterrom.</strong> Man interpolerer ω<sub>0</sub> og r – ikke de rå biquad-koeffisientene – slik at filteret forblir stabilt gjennom hele overgangen.</li>
+    <li><strong>Begrenset retuninghastighet.</strong> Store hopp deles opp i flere mindre steg med en øvre grense for endring per tidsenhet.</li>
+    <li><strong>Kryssfading.</strong> To parallelle filterinstanser kjøres et kort øyeblikk, og utgangen fades fra den gamle til den nye.</li>
+    <li><strong>Forsterkningsnormalisering.</strong> Et notchledd skal ha tilnærmet enhetsforsterkning utenfor notchen, slik at det ikke oppstår hørbare nivåsprang når filtre settes inn og ut. Med flere ledd i kaskade må dette kontrolleres samlet.</li>
+  </ul>
+
+  <p>
+    Dette er en viktig grunn til å skille <em>deteksjon</em> fra <em>filterkontroll</em>:
+    trackeren kan registrere et frekvenshopp umiddelbart, mens notchkontrolleren flytter
+    filteret på en kontrollert og hørbart transparent måte.
+  </p>
+
+  <div class="box merknad">
+    <span class="box-title">Teknisk merknad</span>
+    <p>
+      Direkte form II transponert er en velegnet struktur for flyttallsimplementasjon og
+      krever bare to tilstandsvariabler per ledd, mens direkte form I er numerisk mer robust
+      for fastpunktsaritmetikk i Q15 og Q31. Arm dokumenterer begge for Cortex-M i CMSIS-DSP
+      [<a href="#r14">14</a>].
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s19">
+  <h3><span class="num">19.</span>Foreslått sanntidsarkitektur</h3>
+  <p>
+    Systemet deles i tre uavhengige baner, hver med sin egen tidsbudsjettkarakteristikk.
+  </p>
+
+  <div class="grid">
+    <div class="mini">
+      <h4>Lydtråd – hard sanntid</h4>
+<pre>
+inngang
+   ↓
+notchbank
+   ↓
+forsterkning / limiter
+   ↓
+utgang
+</pre>
+      <p class="small">
+        Kjører per blokk på 256 sampler. Bare filtrering og koeffisientglatting. Ingen
+        minneallokering, ingen låser, ingen fil- eller nettverksoperasjoner.
+      </p>
+    </div>
+
+    <div class="mini">
+      <h4>Analysetråd – myk sanntid</h4>
+<pre>
+lydkopi
+   ↓
+STFT / FFT
+   ↓
+toppdetektor
+   ↓
+fler-tone tracker
+</pre>
+      <p class="small">
+        Leser gjennom en låsefri ringbuffer, kjører FFT med overlapp og vedlikeholder
+        sporlisten. Kan bruke titalls millisekunder per iterasjon.
+      </p>
+    </div>
+
+    <div class="mini">
+      <h4>Klassifikasjonstråd – valgfri</h4>
+<pre>
+egenskaper /
+kort spektrogram
+   ↓
+liten ML-modell
+   ↓
+P(interferens)
+   ↓
+melding til
+notchkontroller
+</pre>
+      <p class="small">
+        Kan kjøre langsomt, og kan fjernes helt uten at systemet slutter å virke – da faller
+        det tilbake på terskelreglene fra <a href="#s11">seksjon 11</a>.
+      </p>
+    </div>
+  </div>
+
+  <div class="box viktig">
+    <span class="box-title">Viktig</span>
+    <p>
+      Lydtråden skal <strong>aldri</strong> vente på analysetråden, klassifikatoren, disk-I/O,
+      logging eller grensesnittet. All kommunikasjon går én vei, gjennom låsefrie strukturer
+      eller en liten trådsikker kø: analysen <em>publiserer</em> ønskede filterparametre, og
+      lydtråden leser dem når den er klar. Blokkerer lydtråden i påvente av en beslutning, får
+      man dropouts – og et system med dropouts er verdiløst, uansett hvor god notchalgoritmen
+      er.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s20">
+  <h3><span class="num">20.</span>Programvareprototype og brukergrensesnitt</h3>
+
+  <h4>Forskningsfase</h4>
+<pre>
+Python
+NumPy
+SciPy
+sounddevice
+PySide / PyQt
+</pre>
+  <p>
+    Rask å komme i gang med, og alt av spektralanalyse og filterdesign finnes ferdig. Målet er
+    ikke ytelse, men å finne ut hvilke egenskaper som faktisk skiller en heterodyn fra tale, og
+    hvilke terskler som gir fornuftig oppførsel.
+  </p>
+
+  <h4>Produksjonsversjon</h4>
+<pre>
+C++ eller Rust
+WASAPI / PortAudio
+Qt
+optimalisert DSP
+</pre>
+  <p>
+    Når algoritmen er avklart, skrives den om for forutsigbar sanntidsoppførsel: eksklusiv
+    lydmodus, ingen allokering i lydtråden og deterministisk blokkbehandling.
+  </p>
+
+  <h4>Brukergrensesnitt</h4>
+  <p>Grensesnittet bør vise nok til at operatøren forstår hva systemet gjør, og kan overstyre det:</p>
+  <ul>
+    <li>spektrum med markerte, aktive notchfiltre</li>
+    <li>fossefallsvisning</li>
+    <li>liste over detekterte toner med frekvens, nivå, konfidens og persistens</li>
+    <li>notchdybde og notchbredde</li>
+    <li>modusvalg SSB / CW / DATA</li>
+    <li>AUTO / MANUAL / FREEZE</li>
+    <li>bypass for direkte A/B-sammenlikning før og etter</li>
+  </ul>
+
+  <div class="box merknad">
+    <span class="box-title">Teknisk merknad</span>
+    <p>
+      Bypass-funksjonen er viktigere enn den ser ut. Uten en rask A/B-sammenlikning er det i
+      praksis umulig å vurdere om systemet faktisk hjelper, eller om det bare fjerner noe man
+      gjerne skulle beholdt.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s21">
+  <h3><span class="num">21.</span>Hvordan bør systemet testes?</h3>
+  <p>
+    Et adaptivt system som bare er prøvd på én innspilling, er ikke verifisert. Testingen bør
+    bygge på et fast sett med merkede opptak – både syntetiske og ekte radioopptak – slik at
+    hver algoritmeendring kan måles mot de samme dataene.
+  </p>
+
+  <div class="grid">
+    <div class="mini">
+      <h4>Testmateriale</h4>
+      <ul>
+        <li>ren SSB-tale uten forstyrrelse – kontroll for at systemet ikke gjør skade</li>
+        <li>tale med én heterodyn</li>
+        <li>tale med flere samtidige heterodyner</li>
+        <li>langsomt drivende tone</li>
+        <li>raskt drivende tone</li>
+        <li>CW, både sterk og nær støygrensen</li>
+        <li>RTTY og annen FSK</li>
+        <li>FT8 og annen datamodulasjon</li>
+        <li>plystring og testsinus</li>
+        <li>tonal tale og sang</li>
+        <li>impulsstøy og bredbåndsstøy</li>
+      </ul>
+    </div>
+
+    <div class="mini">
+      <h4>Målestørrelser</h4>
+      <ul>
+        <li>demping [dB]</li>
+        <li>konvergenstid [ms]</li>
+        <li>sporingsfeil [Hz]</li>
+        <li>andel falske positive</li>
+        <li>andel falske negative</li>
+        <li>lydlatens og beslutningslatens, målt hver for seg</li>
+        <li>taleforståelighet og talekvalitet</li>
+        <li>CPU- og minneforbruk</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>
+    En ML-modell bør først legges til dersom klassisk regelbasert DSP-logikk ikke gir god nok
+    separasjon. Det er en fordel å bygge datasettet fra ekte mottakerlyd og teste særlig mot
+    de signaltypene som er vanskelige å skille fra interferens.
+  </p>
+
+  <div class="box konklusjon">
+    <span class="box-title">Konklusjon</span>
+    <p>
+      Andelen falske positive er den viktigste enkeltmålingen. En operatør tilgir at en
+      heterodyn blir stående noen sekunder ekstra. En operatør tilgir ikke at systemet fjerner
+      motstasjonen.
+    </p>
+  </div>
+</section>
+
+<section class="card" id="s22">
+  <h3><span class="num">22.</span>Samlet vurdering</h3>
+  <p>
+    Et eksternt SmartANF for SSB er teknisk realistisk med dagens maskinvare. Den
+    grunnleggende funksjonen – automatisk undertrykking av stabile sinusformede interferenser
+    – er klassisk adaptiv DSP, godt dekket i litteraturen [<a href="#r1">1</a>]–[<a href="#r6">6</a>],
+    og allerede demonstrert i kommersielle radio-DSP-systemer [<a href="#r10">10</a>],
+    [<a href="#r13">13</a>].
+  </p>
+  <p>
+    En moderne løsning kan forbedres betydelig med fler-tone tracking, høyoppløselig
+    frekvensestimering, gjennomtenkt hysterese, visualisering, modusavhengig beskyttelse av
+    CW og data – og eventuelt en liten lokal klassifikator i beslutningsleddet.
+  </p>
+  <p>
+    En Windows-prototype er den raskeste veien til et målbart resultat. Når algoritmen er
+    validert, kan den porteres til Raspberry Pi, Teensy, STM32 eller en annen innebygd
+    plattform, uten behov for kraftig GPU.
+  </p>
+
+  <div class="box konklusjon">
+    <span class="box-title">Den mest robuste arkitekturen</span>
+    <p>
+      DSP detekterer og filtrerer i sanntid. ML klassifiserer kandidatene og hjelper
+      kontrolleren med å avgjøre hvilke toner som faktisk skal fjernes.
+    </p>
+  </div>
+
+  <a class="toplink" href="#top">↑ Til toppen</a>
+</section>
+
+<!-- ===================== LITTERATUR ===================== -->
+
+<div class="part" id="litteratur">
+  <span class="part-label">Referanser</span>
+  <h2>Litteratur og tekniske kilder</h2>
+  <p>Alle kilder er kontrollert mot tidsskrift, utgiver eller produsentens egen dokumentasjon.</p>
+</div>
+
+<section class="card">
+  <h3>A. Fagfellevurdert DSP- og estimeringslitteratur</h3>
+  <ol class="refs">
+    <li value="1" id="r1">
+      A. Nehorai, «A minimal parameter adaptive notch filter with constrained poles and zeros»,
+      <em>IEEE Transactions on Acoustics, Speech, and Signal Processing</em>, bd. 33, nr. 4,
+      s. 983–996, 1985.
+      DOI: <a href="https://doi.org/10.1109/TASSP.1985.1164643">10.1109/TASSP.1985.1164643</a>
+      <br><span class="small">Grunnleggende arbeid om adaptiv IIR-notch med bundne poler og nullpunkter.</span>
+    </li>
+    <li value="2" id="r2">
+      P. A. Regalia, «An improved lattice-based adaptive IIR notch filter»,
+      <em>IEEE Transactions on Signal Processing</em>, bd. 39, nr. 9, s. 2124–2128, 1991.
+      DOI: <a href="https://doi.org/10.1109/78.134453">10.1109/78.134453</a>
+      <br><span class="small">Gitterbasert struktur med bedre numeriske egenskaper.</span>
+    </li>
+    <li value="3" id="r3">
+      N. I. Cho, C. H. Choi og S. U. Lee, «Adaptive line enhancement by using an IIR lattice
+      notch filter», <em>IEEE Transactions on Acoustics, Speech, and Signal Processing</em>,
+      bd. 37, nr. 4, s. 585–589, 1989.
+      <br><span class="small">DOI ikke verifisert; oppgitt med tidsskrift, bind, nummer og sidetall.</span>
+    </li>
+    <li value="4" id="r4">
+      D. C. Rife og R. R. Boorstyn, «Single-tone parameter estimation from discrete-time
+      observations», <em>IEEE Transactions on Information Theory</em>, bd. 20, nr. 5,
+      s. 591–598, 1974.
+      DOI: <a href="https://doi.org/10.1109/TIT.1974.1055282">10.1109/TIT.1974.1055282</a>
+      <br><span class="small">Referansearbeidet for frekvensestimering av enkelttoner og tilhørende Cramér–Rao-grenser.</span>
+    </li>
+    <li value="5" id="r5">
+      Y. Xiao og Y. Tadokoro, «LMS-based notch filter for the estimation of sinusoidal signals
+      in noise», <em>Signal Processing</em>, bd. 46, nr. 2, s. 223–231, 1995.
+      DOI: <a href="https://doi.org/10.1016/0165-1684(95)00084-Q">10.1016/0165-1684(95)00084-Q</a>
+      <br><span class="small">Viser at LMS-estimatoren oppfører seg som et IIR-notchfilter, med analyse av konvergens og MSE, også for flere frekvenser.</span>
+    </li>
+    <li value="6" id="r6">
+      Q. Wang, X. Gu og J. Lin, «Adaptive notch filter design under multiple identical
+      bandwidths», <em>AEÜ – International Journal of Electronics and Communications</em>,
+      bd. 82, s. 202–210, 2017.
+      <a href="https://www.sciencedirect.com/science/article/abs/pii/S1434841117312141">ScienceDirect</a>
+      <br><span class="small">Adaptivt IIR-notchfilter med identiske båndbredder for undertrykking av flere sinusformede komponenter samtidig.</span>
+    </li>
+  </ol>
 </section>
 
 <section class="card">
-  <h2>Latency</h2>
-  <p>
-    Audio-DSP krever svært lite datakraft. Ved 48 kHz sampling og en buffer på 256 samples:
-  </p>
-
-  <pre>256 / 48000 ≈ 5,33 ms</pre>
-
-  <p>
-    Selv med analyse, buffering og filtrering bør en total latency på omtrent 10–30 ms være
-    fullt realistisk. For vanlig SSB-lytting er dette normalt uproblematisk.
-  </p>
+  <h3>B. Lærebøker og referanseverk</h3>
+  <ol class="refs">
+    <li value="7" id="r7">
+      S. Haykin, <em>Adaptive Filter Theory</em>, 5. utgave, Pearson, 2013.
+      ISBN 978-0-13-267145-3.
+      <br><span class="small">Standardverket for LMS, NLMS, RLS, konvergens- og stabilitetsanalyse.</span>
+    </li>
+    <li value="8" id="r8">
+      B. Widrow og S. D. Stearns, <em>Adaptive Signal Processing</em>, Prentice-Hall, 1985.
+      ISBN 978-0-13-004029-9.
+      <br><span class="small">Klassikeren om adaptiv støykansellering og LMS-familien.</span>
+    </li>
+    <li value="9" id="r9">
+      S. J. Orfanidis, <em>Introduction to Signal Processing</em>, 2. utgave.
+      Fritt tilgjengelig fra forfatterens sider ved Rutgers University:
+      <a href="https://ece.rutgers.edu/orfanidis">ece.rutgers.edu/orfanidis</a>
+      (bokens egen side: <code>eceweb1.rutgers.edu/~orfanidi/intro2sp/2e/</code>).
+      <br><span class="small">Dekker blant annet notchfiltre for kansellering av periodisk interferens, med utledninger og MATLAB-kode.</span>
+    </li>
+  </ol>
 </section>
 
 <section class="card">
-  <h2>Kan AI skrive programmet?</h2>
-  <p><strong>Ja.</strong></p>
-  <p>
-    En coding-agent kan i praksis hjelpe med å utvikle hele systemet:
-    lydinn/ut, spektrumanalyse, tonedeteksjon, adaptive notch-filtre, tracking,
-    grafisk brukergrensesnitt og testing.
-  </p>
-
-  <p>For rask prototyping:</p>
-  <pre>Python + NumPy + SciPy + sounddevice + PySide/PyQt</pre>
-
-  <p>For en mer ferdig og effektiv versjon:</p>
-  <pre>C++ eller Rust + WASAPI/PortAudio + DSP-bibliotek + Qt</pre>
+  <h3>C. Dokumentasjon av praktiske radio-DSP-systemer</h3>
+  <ol class="refs">
+    <li value="10" id="r10">
+      Timewave, <em>DSP-599zx – spesifikasjoner og bruksanvisning</em>.
+      <a href="https://www.universal-radio.com/catalog/filters/3630spec.html">Spesifikasjon</a> ·
+      <a href="https://timewave.com/support/DSP-599/599zxom.pdf">Bruksanvisning (PDF)</a>
+      <br><span class="small">Oppgir «Heterodyne Eliminator – Multiple Automatic Notch» og manuell notch med inntil 50 dB demping og 5 ms maksimal forsinkelse, samt adaptiv støyreduksjon inntil 20 dB. Forsinkelse per filterblokk er gjengitt i <a href="#s17">seksjon 17</a>.</span>
+    </li>
+    <li value="11" id="r11">
+      West Mountain Radio, <em>CLRdsp – ClearSpeech DSP Noise Reduction Processor</em>.
+      <a href="https://www.westmountainradio.com/product_info.php?products_id=clr_dsp">Produktside</a> ·
+      <a href="https://www.westmountainradio.com/pdf/CLRdsp_Manual.pdf">Bruksanvisning (PDF)</a>
+      <br><span class="small">Oppgir adaptiv støyreduksjon, demping av enkelttone over 50 dB, og at enheten gjenkjenner CW-signalets periodiske natur og lar det passere.</span>
+    </li>
+    <li value="12" id="r12">
+      bhi Ltd, <em>Dual In-Line Amplified DSP Noise Cancelling Module</em>.
+      <a href="https://bhi-ltd.com/products/noise-cancellation-products/dsp-noise-cancelling-in-line-modules/8-dual-in-line.html">bhi-ltd.com</a>
+      <br><span class="small">Oppgir åtte filternivåer, 8–40 dB støyreduksjon, tonedemping inntil 65 dB og 38 ms latens. Automatisk notch er ikke dokumentert.</span>
+    </li>
+    <li value="13" id="r13">
+      SOTABEAMS, <em>WOLFWAVE Advanced Audio Processor</em>.
+      <a href="https://www.wolfwave.co.uk/">wolfwave.co.uk</a> ·
+      <a href="https://www.sotabeams.co.uk/wolfwave-advanced-audio-processor/">sotabeams.co.uk</a>
+      <br><span class="small">Oppgir ti uavhengig justerbare manuelle notchfiltre, en adaptiv tonefjerner som skal la CW passere, adaptiv støyreduksjon med 100 nivåer og justerbart båndpass 50 Hz – 5 kHz.</span>
+    </li>
+  </ol>
 </section>
 
-<section class="card good">
-  <h2>Konklusjon</h2>
-  <p>
-    Prosjektet er teknisk svært realistisk.
-  </p>
-  <p>
-    Den enkleste versjonen trenger ingen AI i realtime i det hele tatt:
-    klassisk DSP kan automatisk finne og fjerne stabile toner.
-  </p>
-  <p>
-    En mer avansert «Smart ANF»-versjon kan bruke en liten ML-klassifikator for å skille
-    ønsket tale eller CW fra uønsket heterodyne.
-  </p>
-  <p>
-    Den beste utviklingsstrategien er først å lage systemet som et Windows-program med
-    USB-lydkort. Når algoritmen fungerer godt, kan den flyttes til en liten selvstendig
-    DSP-boks basert på for eksempel Teensy, STM32 eller Raspberry Pi.
-  </p>
+<section class="card">
+  <h3>D. Innebygd DSP, TinyML og nyere forskning</h3>
+  <ol class="refs">
+    <li value="14" id="r14">
+      Arm, <em>CMSIS-DSP – Biquad Cascade IIR Filters</em>, offisiell dokumentasjon.
+      <a href="https://arm-software.github.io/CMSIS-DSP/main/group__BiquadCascadeDF1.html">Direct Form I</a> ·
+      <a href="https://arm-software.github.io/CMSIS-DSP/main/group__BiquadCascadeDF2T.html">Direct Form II Transposed</a> ·
+      <a href="https://github.com/ARM-software/CMSIS-DSP">GitHub</a>
+      <br><span class="small">Beskriver blant annet at direkte form I er numerisk mer robust for Q15/Q31, mens direkte form II transponert krever to tilstandsvariabler per ledd.</span>
+    </li>
+    <li value="15" id="r15">
+      L. Lai, N. Suda og V. Chandra, «CMSIS-NN: Efficient Neural Network Kernels for Arm
+      Cortex-M CPUs», arXiv:1801.06601, 2018.
+      <a href="https://arxiv.org/abs/1801.06601">arxiv.org/abs/1801.06601</a> ·
+      <a href="https://arm-software.github.io/CMSIS-NN/latest/">Dokumentasjon</a>
+      <br><span class="small">Rapporterer om lag 4,6× gjennomstrømning og 4,9× energieffektivitet mot referanseimplementasjon.</span>
+    </li>
+    <li value="16" id="r16">
+      R. David, J. Duke, A. Jain, V. Janapa Reddi, N. Jeffries, J. Li, N. Kreeger, I. Nappier,
+      M. Natraj, T. Wang, P. Warden og R. Rhodes, «TensorFlow Lite Micro: Embedded Machine
+      Learning for TinyML Systems», <em>Proceedings of Machine Learning and Systems (MLSys)</em>,
+      2021. arXiv:2010.08678.
+      <a href="https://arxiv.org/abs/2010.08678">arxiv.org/abs/2010.08678</a>
+    </li>
+    <li value="17" id="r17">
+      TensorFlow Blog, «End-to-end tinyML audio classification with the Raspberry Pi RP2040»,
+      2021.
+      <a href="https://blog.tensorflow.org/2021/09/TinyML-Audio-for-everyone.html">blog.tensorflow.org</a>
+      <br><span class="small">Praktisk eksempel på lokal lydklassifikasjon på Cortex-M0+ med CMSIS-DSP og TensorFlow Lite Micro.</span>
+    </li>
+    <li value="18" id="r18">
+      B. Soner, A. Uzun og E. Uzun, «Improved Frequency Tracking with Adaptive Moments for
+      Narrowband Interference Mitigation in GNSS», arXiv:2607.28395, 2026.
+      <a href="https://arxiv.org/abs/2607.28395">arxiv.org/abs/2607.28395</a>
+      <br><span class="small">Adam-basert oppdateringsregel for frekvensestimatet i et adaptivt notchfilter; raskere konvergens uten økt varians i stasjonær tilstand. GNSS-domenet, men samme problemstilling.</span>
+    </li>
+    <li value="19" id="r19">
+      B. Soner, C. Aksoy og E. Halaçlı, «Real-time Pre-Correlation GNSS Interference
+      Classification with Lightweight Learned Algorithms», arXiv:2607.28404, 2026.
+      <a href="https://arxiv.org/abs/2607.28404">arxiv.org/abs/2607.28404</a>
+      <br><span class="small">Egenskaper utledet fra et virtuelt adaptivt notchfilter kombinert med spektrale egenskaper, klassifisert med gradient-boostede trær innenfor et innebygd ressursbudsjett.</span>
+    </li>
+  </ol>
+
+  <div class="box merknad">
+    <span class="box-title">Om kildebruken</span>
+    <p>
+      Opplysningene om kommersielle enheter er hentet fra produsentens eller forhandlerens egen
+      spesifikasjon, og gjengir bare funksjoner som faktisk er dokumentert der. Der en funksjon
+      <em>ikke</em> er dokumentert, er dette oppgitt eksplisitt i stedet for å bli antatt.
+      Fagfellevurdert litteratur og standardlærebøker brukes som grunnlag for den generelle
+      DSP-teorien.
+    </p>
+  </div>
+
+  <a class="toplink" href="#top">↑ Til toppen</a>
 </section>
 
-<footer>
-  Dokumentet beskriver et konsept for amatør-radio og digital signalbehandling.
-  Arbeidstittel: <strong>SmartANF</strong>.
+<footer class="doc">
+  <p>
+    Teknisk konseptdokument: <strong>SmartANF</strong> – et intelligent adaptivt notchfilter
+    for SSB. Dokumentet kombinerer etablert adaptiv DSP-teori, dokumenterte radio-DSP-løsninger
+    og realistiske muligheter innen TinyML og Edge AI.
+  </p>
+  <p class="small">
+    Klassisk DSP gjør selve filtreringen. Moderne AI/ML kan forbedre beslutningen om hva som
+    faktisk skal filtreres bort.
+  </p>
+  <p class="fineprint">
+    dette konseptdokumentet er utarbeidet for medlemmene i la2d-gruppen.
+  </p>
 </footer>
 
 </div>

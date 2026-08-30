@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Automatic Notch Filter for SSB</title>
+  <style>
+    :root {
+      --bg: #0f1720;
+      --panel: #18222f;
+      --panel2: #111923;
+      --text: #e8eef5;
+      --muted: #a8b4c2;
+      --accent: #63c5da;
+      --accent2: #8ad1a5;
+      --border: #2a3949;
+      --code: #0b1118;
+      --warn: #f0c674;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 36px 20px 60px;
+    }
+    header {
+      padding: 30px;
+      background: linear-gradient(135deg, #172433, #10202b);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      margin-bottom: 24px;
+    }
+    h1 { margin: 0 0 8px; font-size: 2.2rem; line-height: 1.2; }
+    h2 { margin-top: 0; font-size: 1.45rem; }
+    h3 { margin-bottom: 8px; }
+    p { margin: 0.7em 0; }
+    .lead { color: #cbd7e3; font-size: 1.08rem; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 18px 0;
+    }
+    .note {
+      border-left: 4px solid var(--accent);
+      padding-left: 16px;
+    }
+    .good {
+      border-left: 4px solid var(--accent2);
+      padding-left: 16px;
+    }
+    code, pre {
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+    pre {
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      overflow-x: auto;
+      color: #dce8f2;
+      line-height: 1.45;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--accent); }
+    ul { padding-left: 22px; }
+    .tag {
+      display: inline-block;
+      padding: 3px 9px;
+      margin: 2px 4px 2px 0;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .small { color: var(--muted); font-size: 0.92rem; }
+    footer {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Smart Automatic Notch Filter for SSB</h1>
+  <p class="lead">
+    En moderne ekstern lydprosessor for automatisk deteksjon og fjerning av
+    konstante toner, heterodynesignal og andre smalbåndede forstyrrelser under SSB-mottak.
+  </p>
+</header>
+
+<section class="card note">
+  <h2>Hva er problemet?</h2>
+  <p>
+    Under SSB-mottak kan en konstant tone eller bærebølge ligge midt i talelyden.
+    Mange transceivere har en manuell NOTCH-funksjon, men operatøren må selv finne
+    riktig frekvens og justere filteret.
+  </p>
+  <p>
+    Et <strong>Automatic Notch Filter (ANF)</strong> kan i stedet finne tonen automatisk,
+    opprette et smalt notch-filter og følge tonen dersom frekvensen driver.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Finnes det ferdige produkter?</h2>
+  <p>Ja. Det finnes eller har eksistert flere eksterne DSP-enheter som kobles i lydveien:</p>
+  <pre>TRANSCEIVER  →  ekstern DSP / ANF  →  høyttaler eller hodetelefoner</pre>
+
+  <p>Eksempler på denne typen utstyr er blant annet:</p>
+  <ul>
+    <li>Timewave DSP-599zx</li>
+    <li>BHI Dual In-Line / Compact In-Line DSP</li>
+    <li>West Mountain Radio ClearSpeech CLRdsp</li>
+    <li>WOLFWAVE Advanced Audio Processor</li>
+    <li>Xiegu GNR1</li>
+  </ul>
+
+  <p class="small">
+    Produktene varierer i funksjon. Noen har ekte adaptiv notch, mens andre hovedsakelig
+    tilbyr noise reduction, justerbart audio-båndpass eller manuelle notch-filtre.
+  </p>
+</section>
+
+<section class="card good">
+  <h2>Kan vi bygge en bedre, moderne versjon?</h2>
+  <p><strong>Ja, og det er fullt realistisk.</strong></p>
+  <p>
+    Det interessante er at man ikke trenger en stor AI-modell eller et kraftig grafikkort
+    for selve notch-funksjonen. Klassisk digital signalbehandling er allerede svært godt egnet
+    til oppgaven.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Grunnprinsippet</h2>
+  <pre>
+Audio fra transceiver
+        │
+        ▼
+       ADC
+        │
+        ▼
+ FFT / spektralanalyse / tonedetektor
+        │
+        ▼
+ "Finnes det en smal og stabil tone?"
+        │
+        ├── Nei → behold signalet
+        │
+        └── Ja
+             │
+             ▼
+     Automatisk notch-filter
+             │
+             ▼
+            DAC
+             │
+             ▼
+  hodetelefoner / høyttaler
+  </pre>
+
+  <p>
+    Systemet kan for eksempel oppdage en tone på 1468 Hz, opprette et svært smalt notch-filter
+    på 1468 Hz og automatisk flytte det dersom tonen driver til 1470, 1472 eller 1475 Hz.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Flere toner samtidig</h2>
+  <p>
+    En moderne løsning kan ha flere automatiske notch-filtre samtidig.
+  </p>
+  <pre>
+SSB audio 300–3000 Hz
+
+   tale        tone #1        tale        tone #2
+───────▲──────────▲────────────▲────────────▲──────
+                1187 Hz                    2316 Hz
+
+                   ↓                         ↓
+               NOTCH 1                   NOTCH 2
+  </pre>
+
+  <p>
+    Man kan for eksempel ha 4, 8 eller flere notch-filtre som opprettes og fjernes dynamisk.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Hvordan skille forstyrrelse fra tale eller CW?</h2>
+  <p>
+    Dette er den mest interessante delen av prosjektet.
+    En ren heterodyne er vanligvis:
+  </p>
+  <ul>
+    <li>svært smalbåndet,</li>
+    <li>stabil i frekvens,</li>
+    <li>stabil over relativt lang tid,</li>
+    <li>nesten sinusformet.</li>
+  </ul>
+
+  <p>
+    Tale oppfører seg annerledes. Formanter, grunnfrekvens, harmoniske og amplitude endres
+    kontinuerlig.
+  </p>
+
+  <p>
+    CW er også en tone, men har et tydelig tidsmønster med tone, pause, tone, pause.
+    Et smart system kan derfor unngå å fjerne ønsket CW.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Hvor kan AI brukes?</h2>
+  <p>
+    AI bør etter min vurdering ikke utføre selve notch-filtreringen.
+    Det er bedre å la vanlig DSP gjøre dette.
+  </p>
+
+  <p>
+    AI eller maskinlæring kan i stedet fungere som en liten klassifikator som svarer på:
+  </p>
+
+  <pre>
+Er dette:
+
+[ ] tale
+[ ] CW
+[ ] heterodyne / konstant bærebølge
+[ ] annen smalbåndet interferens
+  </pre>
+
+  <p>
+    Klassifikatoren kan analysere noen få FFT-vinduer eller et lite spektrogram.
+    En slik modell kan være svært liten og trenger ikke noe kraftig GPU.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Aktuelle DSP-metoder</h2>
+  <p>Flere velkjente metoder kan brukes:</p>
+  <div>
+    <span class="tag">FFT peak tracking</span>
+    <span class="tag">Goertzel</span>
+    <span class="tag">LMS</span>
+    <span class="tag">Normalized LMS</span>
+    <span class="tag">RLS</span>
+    <span class="tag">Adaptive IIR notch</span>
+    <span class="tag">Biquad notch filters</span>
+  </div>
+
+  <p>
+    En god løsning vil sannsynligvis kombinere spektralanalyse med en bank av adaptive
+    notch-filtre.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Trenger vi en kraftig PC?</h2>
+
+  <table>
+    <tr>
+      <th>Plattform</th>
+      <th>Egnethet</th>
+    </tr>
+    <tr>
+      <td>Windows-PC</td>
+      <td>Meget god for første prototype, analyse, GUI og testing.</td>
+    </tr>
+    <tr>
+      <td>Raspberry Pi</td>
+      <td>Mer enn kraftig nok for realtime audio DSP.</td>
+    </tr>
+    <tr>
+      <td>Teensy 4.1</td>
+      <td>Svært godt egnet som selvstendig DSP-boks.</td>
+    </tr>
+    <tr>
+      <td>STM32H7</td>
+      <td>Meget godt egnet til profesjonell embedded DSP.</td>
+    </tr>
+    <tr>
+      <td>RP2350 / Pico</td>
+      <td>Mulig for enklere varianter.</td>
+    </tr>
+    <tr>
+      <td>RTX GPU</td>
+      <td>Ikke nødvendig for denne oppgaven.</td>
+    </tr>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Beste første steg: en PC-prototype</h2>
+  <pre>
+Transceiver
+    │
+    ▼
+USB audio interface
+    │
+    ▼
+┌──────────────────────────────┐
+│ Windows 11                   │
+│                              │
+│ SMART ANF                    │
+│                              │
+│ Spectrum analyzer            │
+│ Tone detector                │
+│ Automatic tracking           │
+│ Adaptive notch bank          │
+│ Speech / CW protection       │
+└──────────────────────────────┘
+    │
+    ▼
+USB audio output
+    │
+    ▼
+Hodetelefoner / aktiv høyttaler
+  </pre>
+</section>
+
+<section class="card">
+  <h2>Forslag til brukergrensesnitt</h2>
+  <p>Programmet kan vise spektrum og automatisk markere tonene som fjernes:</p>
+
+  <pre>
+SMART ANF
+
+300 Hz                              3000 Hz
+│────────────────────────────────────────│
+
+Spectrum:
+▂▃▂▂▅▃▂▂▂▂████▂▃▂▂▂▂▂████▃▂▂▂
+
+             ▼             ▼
+           1274 Hz       2237 Hz
+
+Detected tones:
+
+#1 1274.2 Hz   -31 dB   stability 99.3 %
+   AUTO NOTCH      attenuation 45 dB
+
+#2 2237.8 Hz   -38 dB   stability 97.8 %
+   AUTO NOTCH      attenuation 40 dB
+  </pre>
+
+  <p>Mulige kontroller:</p>
+  <ul>
+    <li>AUTO / MANUAL / FREEZE</li>
+    <li>SSB / CW</li>
+    <li>CW PROTECT</li>
+    <li>Maksimalt antall notch-filtre: 1 / 2 / 4 / 8</li>
+    <li>Notch depth: 20 / 40 / 60 dB</li>
+    <li>Notch width: 10 / 25 / 50 / 100 Hz</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Latency</h2>
+  <p>
+    Audio-DSP krever svært lite datakraft. Ved 48 kHz sampling og en buffer på 256 samples:
+  </p>
+
+  <pre>256 / 48000 ≈ 5,33 ms</pre>
+
+  <p>
+    Selv med analyse, buffering og filtrering bør en total latency på omtrent 10–30 ms være
+    fullt realistisk. For vanlig SSB-lytting er dette normalt uproblematisk.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Kan AI skrive programmet?</h2>
+  <p><strong>Ja.</strong></p>
+  <p>
+    En coding-agent kan i praksis hjelpe med å utvikle hele systemet:
+    lydinn/ut, spektrumanalyse, tonedeteksjon, adaptive notch-filtre, tracking,
+    grafisk brukergrensesnitt og testing.
+  </p>
+
+  <p>For rask prototyping:</p>
+  <pre>Python + NumPy + SciPy + sounddevice + PySide/PyQt</pre>
+
+  <p>For en mer ferdig og effektiv versjon:</p>
+  <pre>C++ eller Rust + WASAPI/PortAudio + DSP-bibliotek + Qt</pre>
+</section>
+
+<section class="card good">
+  <h2>Konklusjon</h2>
+  <p>
+    Prosjektet er teknisk svært realistisk.
+  </p>
+  <p>
+    Den enkleste versjonen trenger ingen AI i realtime i det hele tatt:
+    klassisk DSP kan automatisk finne og fjerne stabile toner.
+  </p>
+  <p>
+    En mer avansert «Smart ANF»-versjon kan bruke en liten ML-klassifikator for å skille
+    ønsket tale eller CW fra uønsket heterodyne.
+  </p>
+  <p>
+    Den beste utviklingsstrategien er først å lage systemet som et Windows-program med
+    USB-lydkort. Når algoritmen fungerer godt, kan den flyttes til en liten selvstendig
+    DSP-boks basert på for eksempel Teensy, STM32 eller Raspberry Pi.
+  </p>
+</section>
+
+<footer>
+  Dokumentet beskriver et konsept for amatør-radio og digital signalbehandling.
+  Arbeidstittel: <strong>SmartANF</strong>.
+</footer>
+
+</div>
+</body>
+</html>

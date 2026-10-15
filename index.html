@@ -6,197 +6,270 @@
 <title>SmartANF – et intelligent adaptivt notchfilter for SSB</title>
 <meta name="description" content="Teknisk konseptdokument om adaptiv notchfiltrering for SSB-mottak: DSP-teori, tonedeteksjon, fler-tone tracking, latens og hvordan lokal maskinlæring kan brukes som beslutningslag.">
 <style>
-  :root{
-    --bg:#0a121a;
-    --panel:#121e29;
-    --panel2:#0e1822;
-    --text:#e9f0f6;
-    --muted:#a8b6c4;
-    --accent:#67c7dc;
-    --accent-dim:#2c4f5b;
-    --good:#8bd0a4;
-    --heading-green:#55a876;
-    --warn:#efc56f;
-    --danger:#ec8b8b;
-    --line:#2a3a48;
-    --code:#070f16;
-  }
-
-  *{ box-sizing:border-box; }
-  html{ scroll-padding-top:24px; }
-  body{
-    margin:0;
-    font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    line-height:1.6;
-    font-size:17px;
-  }
-  .wrap{ max-width:1120px; margin:0 auto; padding:32px 32px 80px; }
-  header.hero{ padding:36px 32px; background:#172a37; margin-bottom:120px; }
-  .intro-context{ font-size:17px; color:var(--accent); margin:0 0 24px; }
-  header.hero h1{
-    margin:0 0 32px;
-    font-size:clamp(28px,4vw,56px);
-    color:#d9e0e6;
-    -webkit-text-stroke:1.2px #c65353;
-    paint-order:stroke fill;
-    line-height:1.05;
-    letter-spacing:-.035em;
-    text-wrap:pretty;
-  }
-  .lead{ color:#cfdbe6; font-size:17px; margin:20px 0; }
-  p{ max-width:66ch; margin:16px 0; }
-  .badges{ display:flex; flex-wrap:wrap; gap:12px 24px; margin-top:28px; }
-  .badge{ color:var(--accent); font-size:17px; }
-  nav.toc{ background:var(--panel2); padding:32px; margin:0 0 120px; }
-  nav.toc h2{ margin:0 0 24px; font-size:28px; line-height:1.2; color:var(--muted); }
-  nav.toc ol{ margin:0; padding-left:24px; }
-  nav.toc > ol > li{ margin:24px 0; font-weight:600; }
-  nav.toc > ol > li:first-child{ margin-top:0; }
-  nav.toc > ol > li:last-child{ margin-bottom:0; }
-  nav.toc ol ol{ padding-left:24px; margin:12px 0 24px; }
-  nav.toc ol ol li{ font-weight:400; margin:2px 0; }
-  nav.toc a{ display:block; text-decoration:none; padding:8px 0; color:var(--text); }
-  .part{ margin:120px 0 40px; padding:32px; background:#173039; }
-  .part-label{ display:block; font-size:17px; color:var(--accent); margin-bottom:16px; }
-  .part h2{ margin:0 0 20px; font-size:28px; line-height:1.2; letter-spacing:-.02em; text-wrap:pretty; }
-  .part p{ margin:0; color:var(--muted); }
-  section.card{ background:var(--panel); padding:32px; margin:0 0 120px; }
-  section.card > h3{ margin:0 0 24px; font-size:28px; line-height:1.2; letter-spacing:-.02em; text-wrap:pretty; }
-  section.card[id^="s"] > h3{ color:var(--good); }
-  section.card > h3 .num{ color:inherit; font-variant-numeric:tabular-nums; margin-right:8px; }
-  h4{ margin:40px 0 16px; font-size:28px; line-height:1.2; letter-spacing:-.02em; color:var(--heading-green); text-wrap:pretty; }
-  ul,ol{ padding-left:24px; }
-  li{ margin:8px 0; }
-  strong{ color:#f3f8fc; }
-  .box{ padding:24px; margin:28px 0; background:var(--panel2); }
-  .box .box-title{ display:block; font-size:17px; margin-bottom:12px; font-weight:700; }
-  .box p:first-of-type{ margin-top:0; }
-  .box p:last-child{ margin-bottom:0; }
-  .box.viktig .box-title{ color:var(--warn); }
-  .box.konklusjon .box-title{ color:var(--good); }
-  .box.merknad .box-title{ color:var(--accent); }
-  .box.feil .box-title{ color:var(--danger); }
-
-  /* Fixed-width technical diagrams and literal code keep their alignment. */
-  pre{
-    background:var(--code);
-    padding:20px;
-    overflow-x:auto;
-    color:#dbe7f2;
-    line-height:1.5;
-    font-family:"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
-    font-size:16px;
-    margin:24px 0;
-    max-width:100%;
-    tab-size:4;
-  }
-  code{ font-family:inherit; font-size:1em; background:var(--code); padding:1px 4px; overflow-wrap:anywhere; }
-  pre code{ font-family:inherit; background:none; padding:0; overflow-wrap:normal; }
-  math{ font-family:math; }
-  .inline-math{ font-size:1.08em; }
-  .eq{
-    background:var(--code); padding:24px 20px; margin:28px 0;
-    color:#e4eef7; font-size:21px; line-height:1.5; overflow-x:auto;
-    overscroll-behavior-x:contain; scrollbar-width:thin;
-    scrollbar-color:var(--accent-dim) var(--code);
-  }
-  .eq-sequence{ display:flex; flex-wrap:wrap; align-items:center; gap:16px 20px; }
-  .eq .display-math{ flex:0 0 auto; display:block; width:max-content; margin:0; font-size:1em; }
-  @media (max-width:620px){
-    .eq{ font-size:20px; }
-  }
-  figure{ margin:28px 0; }
-  figcaption{ color:var(--muted); font-size:16px; margin-top:16px; max-width:66ch; }
-  .svg-wrap{ overflow-x:auto; background:var(--code); padding:16px; }
-  .svg-wrap svg{ display:block; width:100%; min-width:620px; height:auto; }
-  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:32px; margin:28px 0; }
-  .mini{ padding:0; min-width:0; }
-  .mini h4{ margin:0 0 20px; }
-  .mini pre{ margin:0; font-size:16px; }
-  .kpi{ font-size:17px; color:var(--accent); font-weight:700; margin-bottom:12px; }
-  .table-wrap{ overflow-x:auto; margin:28px 0; }
-  pre, .svg-wrap, .table-wrap{ overscroll-behavior-x:contain; scrollbar-width:thin; scrollbar-color:var(--accent-dim) var(--code); }
-  table{ width:100%; border-collapse:collapse; min-width:520px; }
-  th,td{ border-bottom:1px solid var(--line); padding:16px 12px; text-align:left; vertical-align:top; font-size:17px; }
-  th{ color:var(--accent); font-weight:600; }
-  tbody tr:hover{ background:rgba(103,199,220,.05); }
-  ol.refs{ padding-left:0; list-style:none; }
-  ol.refs li{ overflow-wrap:anywhere; padding:16px 0 16px 46px; position:relative; font-size:17px; }
-  ol.refs li::before{ content:"[" attr(value) "]"; position:absolute; left:0; top:16px; color:var(--accent); font-variant-numeric:tabular-nums; }
-  a{ color:var(--accent); text-decoration-thickness:.08em; text-underline-offset:.2em; transition:opacity 180ms ease; }
-  a:focus-visible, [tabindex="0"]:focus-visible{ outline:3px solid var(--accent); outline-offset:5px; }
-  a:active{ opacity:.8; }
-  .small{ color:var(--muted); font-size:16px; }
-  .fineprint{ color:var(--muted); font-size:16px; margin-top:24px; }
-  .toplink{
-    display:inline-flex; align-items:center; min-height:44px; padding:10px 16px;
-    margin:16px 0 0; font-size:17px; color:var(--muted); background:var(--panel2);
-    text-decoration:none; transition:transform 140ms ease-out;
-  }
-  .toplink:active{ transform:translateY(1px); }
-  footer.doc{ color:var(--muted); font-size:17px; margin-top:120px; padding:0 32px; }
-  @media (hover:hover) and (pointer:fine){
-    a:hover{ color:#93dcec; }
-    nav.toc a:hover{ color:var(--accent); text-decoration:underline; }
-    .toplink:hover{ color:var(--accent); transform:translateY(-2px); }
-  }
-  @media (max-width:900px){
-    .wrap{ padding:24px 24px 64px; }
-    .grid{ grid-template-columns:1fr; }
-  }
-  @media (max-width:620px){
-    /* One 20px reading margin, rather than nested page and panel gutters. */
-    .wrap{ padding:0 0 48px; }
-    header.hero{ padding:28px 20px; margin-bottom:72px; }
-    header.hero h1{ font-size:clamp(22px,6.15vw,26px); line-height:1.15; letter-spacing:-.025em; margin-bottom:24px; }
-    .intro-context{ margin-bottom:20px; }
-    section.card{ padding:28px 20px; margin-bottom:72px; }
-    section.card > h3, h4, .part h2, nav.toc h2{ font-size:22px; line-height:1.25; }
-    .part{ padding:28px 20px; margin-top:72px; margin-bottom:32px; }
-    nav.toc{ padding:28px 20px; margin-bottom:72px; }
-    nav.toc a{ min-height:44px; }
-    nav.toc ol ol{ padding-left:16px; }
-    .badges{ gap:10px 18px; }
-    .badge{ font-size:16px; }
-    .part h2{ font-size:20px; }
-    .box{ padding:20px 16px; }
-    .grid{ gap:32px; }
-    pre{ padding:16px; }
-    .eq{ padding:16px; }
-    th,td{ padding:14px 10px; }
-    .compact-table{ min-width:0; table-layout:fixed; }
-    .compact-table th:first-child, .compact-table td:first-child{ width:35%; }
-    .compact-table th, .compact-table td{ overflow-wrap:anywhere; }
-    ol.refs li{ padding-left:36px; }
-    footer.doc{ margin-top:72px; padding:0 20px; }
-  }
-  @media (max-width:359px){
-    header.hero h1{ font-size:20px; }
-    section.card > h3{ font-size:20px; }
-    .part h2{ font-size:18px; }
-  }
-
-  /* Entrances never hide content while waiting for JavaScript. */
-  @media (prefers-reduced-motion:no-preference){
-    .enter-heading{ animation:heading-enter 650ms cubic-bezier(.22,1,.36,1) both; }
-    .enter-detail{ animation:detail-enter 550ms cubic-bezier(.22,1,.36,1) both; animation-delay:75ms; }
-    @keyframes heading-enter{ from{ opacity:.65; transform:translateY(16px); } to{ opacity:1; transform:none; } }
-    @keyframes detail-enter{ from{ opacity:.7; transform:translateY(8px); } to{ opacity:1; transform:none; } }
-  }
-  @media (prefers-reduced-motion:reduce){
-    *, *::before, *::after{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }
-  }
+:root{
+  color-scheme:dark;
+  --bg:#1b1d1b;
+  --panel:#232623;
+  --panel2:#202320;
+  --text:#d9dcd6;
+  --muted:#adb4a9;
+  --accent:#7eaf89;
+  --link:#83b5e4;
+  --link-hover:#bedafb;
+  --accent-dim:#42624b;
+  --good:#7eaf89;
+  --heading-green:#7eaf89;
+  --warn:#d0bf8d;
+  --danger:#ce9a8c;
+  --line:#3b4138;
+  --code:#151815;
+  --heading:#ecede7;
+  --active:#293c30;
+  --font:"Segoe UI Variable Text","Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:104px}
+body{margin:0;background:var(--bg);color:var(--text);font:18px/1.65 var(--font);-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent-dim);color:var(--heading)}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:4px}
+a:hover{color:var(--heading)}
+a:focus-visible,summary:focus-visible,[tabindex="0"]:focus-visible{outline:2px solid var(--accent);outline-offset:5px}
+.skip-link{position:fixed;left:24px;top:-100px;z-index:30;background:var(--accent);color:var(--bg);padding:12px 20px}
+.skip-link:focus{top:8px}
+.site-header{position:sticky;top:0;z-index:20;background:var(--panel2)}
+.site-header-inner{max-width:1320px;margin:auto;min-height:76px;padding:14px 32px;display:flex;align-items:center;gap:40px}
+.wordmark{font-size:21px;font-weight:650;letter-spacing:-.04em;color:var(--heading);text-decoration:none}
+.site-links{display:flex;gap:28px;margin-left:auto;font-size:15px}
+.site-links a{color:var(--muted);text-decoration:none;padding:8px 0}
+.site-links a:hover{color:var(--heading)}
+.read-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 18px;background:var(--active);color:var(--accent);font-size:15px;font-weight:600;text-decoration:none}
+.read-link:hover{background:var(--accent-dim);color:var(--heading)}
+.wrap{max-width:1320px;margin:auto;display:grid;grid-template-columns:244px minmax(0,880px);gap:72px;padding:48px 32px 64px}
+.doc-sidebar{position:sticky;top:108px;align-self:start;max-height:calc(100dvh - 140px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.contents summary{font-weight:600;font-size:16px;color:var(--heading);list-style:none;cursor:pointer;padding:0 8px 16px}
+.contents summary::-webkit-details-marker{display:none}
+.contents-count{font-size:14px;color:var(--muted);font-weight:400;margin-left:10px}
+.contents-toggle{display:none}
+.toc h2{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.toc ol{list-style:none;padding:0;margin:0}
+.toc>ol>li{margin:0 0 24px}
+.toc>ol>li>a{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:8px}
+.toc a{display:block;padding:7px 10px;text-decoration:none;font-size:14px;line-height:1.4;color:var(--muted);transition:background-color 140ms,color 140ms}
+.toc ol ol{list-style:decimal;margin:0 0 0 27px;font-variant-numeric:tabular-nums}
+.toc ol ol li{padding:0;margin:0;color:var(--muted);font-size:13px}
+.toc ol ol a{padding-left:7px}
+.toc a:hover{background:var(--panel);color:var(--heading)}
+.toc a[aria-current="location"]{background:var(--active);color:var(--accent);font-weight:600}
+.document{min-width:0}
+.document :is(section,div[id],h3[id]){scroll-margin-top:0}
+.document>header.hero{padding:0;margin:0 0 48px;background:none}
+header.hero h1{font-size:48px;line-height:1.1;letter-spacing:-.045em;font-weight:600;color:var(--heading);margin:0 0 10px;text-wrap:balance}
+.doc-subtitle{font-size:28px;line-height:1.35;color:var(--heading);margin:0 0 24px;max-width:38ch;letter-spacing:-.02em}
+.intro-context{font-size:15px;color:var(--muted);margin:28px 0 10px}
+p{max-width:68ch;margin:0 0 20px;text-wrap:pretty}
+.lead{font-size:18px;line-height:1.65;margin:0 0 24px}
+.hero .doc-subtitle + .lead{font-size:18px;line-height:1.65;max-width:68ch}
+.doc-topics{font-size:16px;line-height:1.8;color:var(--muted);margin:28px 0 0}
+.reader-note{background:var(--panel);padding:16px 20px;font-size:16px;line-height:1.6;margin:0 0 28px}
+.badges{display:flex;flex-wrap:wrap;column-gap:22px;row-gap:6px;margin-top:0}
+.badge{font-size:14px;color:var(--muted)}
+section.card{padding:0;margin:0 0 64px;background:none}
+section.card>h3{margin:0 0 22px;font-size:28px;line-height:1.25;font-weight:600;letter-spacing:-.025em;color:var(--heading);text-wrap:pretty}
+section.card>h3 .num{color:var(--accent);font-size:.74em;font-weight:500;display:inline-block;min-width:32px;margin-right:10px;font-variant-numeric:tabular-nums}
+h4{font-size:21px;font-weight:600;line-height:1.35;letter-spacing:-.015em;color:var(--accent);margin:32px 0 16px;text-wrap:pretty}
+strong{font-weight:600;color:var(--heading)}
+ul,ol{padding-left:24px;margin-top:0;margin-bottom:24px}
+li{margin:8px 0}
+.part{padding:24px 28px;margin:80px 0 40px;background:var(--panel)}
+.part-label{font-size:16px;color:var(--accent);display:block;margin:0 0 8px}
+.part h2{font-size:28px;line-height:1.25;font-weight:600;letter-spacing:-.025em;margin:0 0 12px;text-wrap:pretty;color:var(--heading)}
+.part p{font-size:16px;color:var(--muted);margin:0}
+.box{background:var(--panel);padding:24px 28px;margin:28px 0}
+.box-title{display:block;font-size:16px;font-weight:600;color:var(--accent);margin-bottom:10px}
+.box p:first-of-type{margin-top:0}
+.box p:last-child{margin-bottom:0}
+.box.viktig .box-title{color:var(--warn)}
+.box.feil .box-title{color:var(--danger)}
+.box.konklusjon{background:var(--active)}
+pre{max-width:100%;overflow-x:auto;background:var(--code);padding:24px;font:16px/1.6 "Cascadia Code",Consolas,monospace;color:var(--text);margin:24px 0;tab-size:4}
+code{font-family:inherit;font-size:.95em;background:var(--panel);padding:2px 5px;overflow-wrap:anywhere}
+pre code{font:inherit;background:none;padding:0;overflow-wrap:normal}
+math{font-family:math}
+.inline-math{font-size:1.08em}
+.eq{background:var(--code);padding:26px 24px;margin:28px 0;overflow-x:auto;font-size:21px;color:var(--heading);line-height:1.5}
+.eq-sequence{display:flex;flex-wrap:wrap;align-items:center;gap:16px 20px}
+.eq .display-math{flex:0 0 auto;display:block;width:max-content;margin:0;font-size:1em}
+pre,.eq,.table-wrap,.svg-wrap{overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:var(--accent-dim) var(--code)}
+figure{margin:28px 0}
+figcaption{font-size:16px;color:var(--muted);margin-top:14px;max-width:68ch}
+.svg-wrap{overflow-x:auto;background:var(--code);padding:20px}
+.svg-wrap svg{display:block;width:100%;min-width:620px;height:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:32px;margin:28px 0}
+.mini{min-width:0}
+.mini h4{margin:0 0 16px}
+.mini pre{margin:0;font-size:16px}
+.kpi{font-size:16px;font-weight:600;color:var(--accent);margin:0 0 10px}
+.table-wrap{overflow-x:auto;margin:28px 0}
+table{width:100%;border-collapse:collapse;min-width:520px;font-size:16px;line-height:1.6}
+th,td{padding:16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--panel);font-weight:600;color:var(--heading)}
+tbody tr:hover{background:var(--panel2)}
+a[href^="#r"],a[href="#litteratur"],ol.refs a{color:var(--link)}
+a[href^="#r"]:hover,a[href="#litteratur"]:hover,ol.refs a:hover{color:var(--link-hover)}
+ol.refs{list-style:none;padding:0}
+ol.refs li{position:relative;margin:0;padding:14px 0 14px 44px;overflow-wrap:anywhere;font-size:16px}
+ol.refs li::before{content:"[" attr(value) "]";position:absolute;top:14px;left:0;color:var(--muted);font-variant-numeric:tabular-nums}
+.small,.fineprint{font-size:16px;color:var(--muted)}
+.fineprint{margin-top:24px}
+.toplink{display:inline-flex;align-items:center;min-height:44px;font-size:16px;color:var(--muted);margin-top:12px;text-decoration:none}
+.toplink:hover{color:var(--accent)}
+footer.doc{margin-top:72px;padding:28px;background:var(--panel2);font-size:16px;color:var(--muted)}
+footer.doc p:last-child{margin-bottom:0}
+@media(min-width:1001px){.contents>summary{pointer-events:none}}
+@media(max-width:1120px){
+  .wrap{grid-template-columns:220px minmax(0,1fr);gap:40px;padding-inline:28px}
+  .site-header-inner{padding-inline:28px}
+  .grid{grid-template-columns:1fr}
+}
+@media(max-width:1000px){
+  html{scroll-padding-top:132px}
+  .wrap{display:block;max-width:900px;padding:0 28px 48px}
+  .site-header-inner{min-height:64px}
+  .doc-sidebar{top:64px;max-height:none;overflow:visible;z-index:15;background:var(--panel2);margin:0 -28px 40px;padding:0 28px}
+  .contents summary{display:flex;align-items:center;min-height:54px;padding:12px 0}
+  .contents-toggle{display:block;margin-left:auto;font-size:22px;font-weight:400;line-height:1}
+  .contents[open] .contents-toggle{transform:rotate(45deg)}
+  .contents nav{max-height:65dvh;overflow:auto;padding:0 0 16px;overscroll-behavior:contain}
+  .toc ol ol{columns:2;column-gap:44px}
+  .toc ol ol li{break-inside:avoid}
+  .toc a{font-size:15px;min-height:36px}
+  .toc>ol>li>a{font-size:15px}
+  .document :is(section,div[id],h3[id]){scroll-margin-top:0}
+  header.hero h1{font-size:44px}
+}
+@media(max-width:620px){
+  body{font-size:17px;line-height:1.65}
+  .site-header-inner{padding:10px 20px;gap:20px;min-height:60px}
+  .site-links{display:none}
+  .read-link{margin-left:auto;font-size:14px;min-height:40px;padding:8px 14px}
+  .wordmark{font-size:20px}
+  .wrap{padding:0 20px 36px}
+  .doc-sidebar{top:60px;margin:0 -20px 32px;padding:0 20px}
+  .contents summary{min-height:52px}
+  .toc ol ol{columns:1}
+  .toc a{min-height:44px;padding-block:11px}
+  header.hero h1{font-size:40px;margin-bottom:12px}
+  .doc-subtitle{font-size:21px;margin-bottom:24px}
+  .lead,.hero .lead:first-of-type{font-size:17px;line-height:1.65}
+  .intro-context{font-size:14px;margin-top:24px}
+  .badge{font-size:14px}
+  .badges{column-gap:16px}
+  .document>header.hero{margin-bottom:40px}
+  section.card{margin-bottom:48px}
+  section.card>h3{font-size:24px;line-height:1.3;margin-bottom:20px}
+  section.card>h3 .num{min-width:25px;margin-right:8px}
+  h4{font-size:20px;margin-top:28px}
+  .part{padding:20px;margin:56px -20px 32px}
+  .part h2{font-size:22px}
+  .part p{font-size:16px}
+  .box{padding:20px;margin:24px 0}
+  pre{font-size:15px;padding:18px}
+  .eq{font-size:20px;padding:18px}
+  .svg-wrap{padding:16px}
+  .grid{grid-template-columns:1fr;gap:28px}
+  th,td{padding:14px 12px}
+  .compact-table{min-width:0;table-layout:fixed}
+  .compact-table th:first-child,.compact-table td:first-child{width:35%}
+  .compact-table :is(th,td){overflow-wrap:anywhere}
+  footer.doc{margin:56px -20px 0;padding:24px 20px}
+}
+@media(max-width:359px){section.card>h3{font-size:21px}.part h2{font-size:19px}.doc-subtitle{font-size:20px}}
+@media(prefers-reduced-motion:no-preference){
+  .enter-heading{animation:heading-enter 450ms ease-out both}
+  .enter-detail{animation:detail-enter 450ms ease-out both;animation-delay:60ms}
+  @keyframes heading-enter{from{opacity:.8;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes detail-enter{from{opacity:.85;transform:translateY(5px)}to{opacity:1;transform:none}}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media print{
+  :root{color-scheme:light;--bg:#fff;--text:#222;--heading:#111;--accent:#31533a;--muted:#555;--panel:#f0f1ee;--panel2:#f6f6f4;--code:#f3f3f1;--line:#ccc}
+  .site-header,.doc-sidebar,.skip-link,.toplink{display:none}
+  .wrap{display:block;padding:0;max-width:none}
+  body{font-size:11pt}.grid{display:block}
+  .part,section.card{break-inside:auto}h2,h3,h4{break-after:avoid}
+  pre,.table-wrap,.eq,.svg-wrap{overflow:visible}table{min-width:0}
+}
 
 </style>
 </head>
 <body>
-<div class="wrap"><a id="top"></a>
+<a class="skip-link" href="#main-content">Hopp til innhold</a>
+<header class="site-header" data-ui>
+  <div class="site-header-inner">
+    <a class="wordmark" href="#top">SmartANF</a>
+    <nav class="site-links" aria-label="Hovednavigasjon">
+      <a href="#del1">Oversikt</a><a href="#del2">DSP og teori</a>
+      <a href="#litteratur">Kilder</a><a href="#faglige-merknader">Merknader</a>
+    </nav>
+    <a class="read-link" href="#s1">Les dokumentet</a>
+  </div>
+</header>
+<div class="wrap">
+<aside class="doc-sidebar" data-ui>
+  <details class="contents" open>
+    <summary>Innhold <span class="contents-count">22 kapitler</span><span class="contents-toggle" aria-hidden="true">+</span></summary>
+<nav class="toc" aria-label="Dokumentets innhold">
+  <h2>Innhold</h2>
+  <ol>
+    <li>
+      <a href="#del1">Del I · Oversikt</a>
+      <ol>
+        <li><a href="#s1">Problemet i SSB-mottak</a></li>
+        <li><a href="#s2">ANF er ikke det samme som ANC</a></li>
+        <li><a href="#s3">Typisk inline-konfigurasjon</a></li>
+        <li><a href="#s4">Eksisterende produkter</a></li>
+        <li><a href="#s5">SmartANF-konseptet</a></li>
+        <li><a href="#s6">Windows-PC som første prototype</a></li>
+      </ol>
+    </li>
+    <li>
+      <a href="#del2">Del II · DSP og algoritmer</a>
+      <ol start="7">
+        <li><a href="#s7">Digital notchfilterteori</a></li>
+        <li><a href="#s8">Adaptiv notchfiltrering</a></li>
+        <li><a href="#s9">Tonedeteksjon og frekvensestimering</a></li>
+        <li><a href="#s10">Fler-tone tracking</a></li>
+        <li><a href="#s11">Tale, CW og interferens</a></li>
+        <li><a href="#s12">CW PROTECT</a></li>
+        <li><a href="#s13">Rollen til moderne AI og maskinlæring</a></li>
+        <li><a href="#s14">Språkmodeller hører ikke hjemme i sanntidskjeden</a></li>
+        <li><a href="#s15">TinyML og Edge AI</a></li>
+        <li><a href="#s16">Maskinvare</a></li>
+        <li><a href="#s17">Latens</a></li>
+        <li><a href="#s18">Filterartefakter, Q og retuning</a></li>
+        <li><a href="#s19">Foreslått sanntidsarkitektur</a></li>
+        <li><a href="#s20">Programvareprototype og brukergrensesnitt</a></li>
+        <li><a href="#s21">Hvordan bør systemet testes?</a></li>
+        <li><a href="#s22">Samlet vurdering</a></li>
+      </ol>
+    </li>
+    <li><a href="#litteratur">Litteratur og tekniske kilder</a></li>
+    <li><a href="#faglige-merknader">Faglige merknader</a></li>
+  </ol>
+</nav>
+  </details>
+</aside>
+<main class="document" id="main-content">
+<a id="top"></a>
 
 <header class="hero">
-  <div class="intro-context">Amatørradio · DSP · SSB · Edge AI</div>
-  <h1>SmartANF – et intelligent adaptivt notchfilter for SSB</h1>
+  <h1>SmartANF</h1>
+  <p class="doc-subtitle">– et intelligent adaptivt notchfilter for SSB</p>
+  <p class="reader-note">
+    Helt nederst på siden, etter litteraturlisten, finner du også
+    <a href="#faglige-merknader">Faglige merknader</a> med praktiske betraktninger
+    og innspill til videre arbeid.
+  </p>
   <p class="lead">
     Et teknisk konsept for en ekstern lydprosessor som automatisk oppdager, følger og demper
     vedvarende smalbåndede forstyrrelser – typisk en bærebølge eller en heterodyn – uten at
@@ -211,14 +284,10 @@
     hvordan moderne maskinlæring kan brukes som et beslutningslag uten å erstatte selve
     DSP-filtreringen. Til slutt følger en kontrollert referanseliste.
   </p>
-  <div class="badges">
-    <span class="badge">Automatic Notch Filter</span>
-    <span class="badge">Adaptiv DSP</span>
-    <span class="badge">Fler-tone tracking</span>
-    <span class="badge">SSB / CW protection</span>
-    <span class="badge">TinyML / Edge AI</span>
-    <span class="badge">Lav latens</span>
-  </div>
+  <p class="doc-topics">
+    Amatørradio · DSP · SSB · Edge AI<br>
+    Automatic Notch Filter · Adaptiv DSP · Fler-tone tracking · SSB / CW protection · TinyML / Edge AI · Lav latens
+  </p>
 </header>
 
 <section class="card">
@@ -245,45 +314,7 @@
   </div>
 </section>
 
-<nav class="toc">
-  <h2>Innhold</h2>
-  <ol>
-    <li>
-      <a href="#del1">Del I – Oversikt, eksisterende løsninger og SmartANF-konseptet</a>
-      <ol>
-        <li><a href="#s1">Problemet i SSB-mottak</a></li>
-        <li><a href="#s2">ANF er ikke det samme som ANC</a></li>
-        <li><a href="#s3">Typisk inline-konfigurasjon</a></li>
-        <li><a href="#s4">Eksisterende produkter</a></li>
-        <li><a href="#s5">SmartANF-konseptet</a></li>
-        <li><a href="#s6">Windows-PC som første prototype</a></li>
-      </ol>
-    </li>
-    <li>
-      <a href="#del2">Del II – Teknisk fordypning: DSP, adaptiv filtrering og moderne AI/ML</a>
-      <ol start="7">
-        <li><a href="#s7">Digital notchfilterteori</a></li>
-        <li><a href="#s8">Adaptiv notchfiltrering</a></li>
-        <li><a href="#s9">Tonedeteksjon og frekvensestimering</a></li>
-        <li><a href="#s10">Fler-tone tracking</a></li>
-        <li><a href="#s11">Tale, CW og interferens</a></li>
-        <li><a href="#s12">CW PROTECT</a></li>
-        <li><a href="#s13">Rollen til moderne AI og maskinlæring</a></li>
-        <li><a href="#s14">Språkmodeller hører ikke hjemme i sanntidskjeden</a></li>
-        <li><a href="#s15">TinyML og Edge AI</a></li>
-        <li><a href="#s16">Maskinvare</a></li>
-        <li><a href="#s17">Latens</a></li>
-        <li><a href="#s18">Filterartefakter, Q og retuning</a></li>
-        <li><a href="#s19">Foreslått sanntidsarkitektur</a></li>
-        <li><a href="#s20">Programvareprototype og brukergrensesnitt</a></li>
-        <li><a href="#s21">Hvordan bør systemet testes?</a></li>
-        <li><a href="#s22">Samlet vurdering</a></li>
-      </ol>
-    </li>
-    <li><a href="#litteratur">Litteratur og tekniske kilder</a></li>
-    <li><a href="#faglige-merknader">Faglige merknader</a></li>
-  </ol>
-</nav>
+
 
 <!-- ===================== DEL I ===================== -->
 
@@ -2009,11 +2040,49 @@ optimalisert DSP
     dette konseptdokumentet er utarbeidet for medlemmene i LA2D-gruppen.
   </p>
 </footer>
-
+</main>
 </div>
 
 <script>
 (() => {
+  const narrow = window.matchMedia('(max-width:1000px)');
+  const contents = document.querySelector('.contents');
+  const syncContents = () => { contents.open = !narrow.matches; };
+  syncContents();
+  narrow.addEventListener('change', syncContents);
+  document.querySelector('.toc').addEventListener('click', event => {
+    if (narrow.matches && event.target.closest('a')) contents.open = false;
+  });
+  const links = [...document.querySelectorAll('.toc a[href^="#"]')];
+  const locations = links.map(link => ({link, node:document.getElementById(link.hash.slice(1))})).filter(item => item.node);
+  let framePending = false;
+  let previousLocation = null;
+  const markLocation = () => {
+    framePending = false;
+    let current = null;
+    for (const item of locations) {
+      if (item.node.getBoundingClientRect().top <= 180) current = item;
+    }
+    for (const item of locations) {
+      if (item === current) item.link.setAttribute('aria-current','location');
+      else item.link.removeAttribute('aria-current');
+    }
+    if (current && current !== previousLocation && !narrow.matches) {
+      const sidebar = document.querySelector('.doc-sidebar');
+      const linkRect = current.link.getBoundingClientRect();
+      const sideRect = sidebar.getBoundingClientRect();
+      if (linkRect.top < sideRect.top || linkRect.bottom > sideRect.bottom) {
+        sidebar.scrollTop += linkRect.top - sideRect.top - sidebar.clientHeight / 3;
+      }
+    }
+    previousLocation = current;
+  };
+  window.addEventListener('scroll', () => {
+    if (!framePending) { framePending = true; requestAnimationFrame(markLocation); }
+  }, {passive:true});
+  window.addEventListener('hashchange', () => requestAnimationFrame(markLocation));
+  window.addEventListener('resize', () => requestAnimationFrame(markLocation));
+  markLocation();
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const motionTargets = [];
   document.querySelectorAll('header.hero, .part, section.card, nav.toc, footer.doc').forEach(section => {

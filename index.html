@@ -196,8 +196,8 @@
   <p class="lead">
     Et teknisk konsept for en ekstern lydprosessor som automatisk oppdager, følger og demper
     vedvarende smalbåndede forstyrrelser – typisk en bærebølge eller en heterodyn – uten at
-    operatøren må finne notchfrekvensen manuelt, og uten å ødelegge talen eller fjerne
-    ønsket CW.
+    operatøren må finne notchfrekvensen manuelt. Målet er å redusere forstyrrelsene med
+    minst mulig påvirkning på talen og med beskyttelse av ønsket CW.
   </p>
   <p class="lead">
     Dokumentet består av to deler. <strong>Del I</strong> gir en praktisk oversikt over
@@ -227,8 +227,8 @@
     [<a href="#r10">10</a>].
   </p>
   <p>
-    Det nye i SmartANF er kombinasjonen av <strong>presis frekvensestimering, flere samtidige
-    og selvryddende notchfiltre, bedre beslutningslogikk og valgfri lokal
+    SmartANF tar sikte på å kombinere <strong>presis frekvensestimering, flere samtidige
+    og selvryddende notchfiltre, gjennomtenkt beslutningslogikk og valgfri lokal
     ML-klassifikasjon</strong>.
   </p>
 
@@ -277,6 +277,7 @@
       </ol>
     </li>
     <li><a href="#litteratur">Litteratur og tekniske kilder</a></li>
+    <li><a href="#faglige-merknader">Faglige merknader</a></li>
   </ol>
 </nav>
 
@@ -326,12 +327,12 @@
         <tr>
           <td><strong>ANF</strong><br><span class="small">Automatic Notch Filter</span></td>
           <td>Automatisk smalbåndet notchfilter i mottakerens lydkjede.</td>
-          <td>Fjerner én eller flere <em>smale</em> frekvenskomponenter – typisk stabile toner – og lar resten av spekteret stå urørt.</td>
+          <td>Fjerner én eller flere <em>smale</em> frekvenskomponenter – typisk stabile toner – med minst mulig påvirkning på resten av spekteret.</td>
         </tr>
         <tr>
           <td><strong>ANC</strong><br><span class="small">Active Noise Cancellation</span></td>
           <td>Aktiv støydemping, kjent fra hodetelefoner.</td>
-          <td>Måler omgivelseslyd med mikrofon og sender ut et motfasesignal i luften. Har ingenting med mottakerens lydsignal å gjøre.</td>
+          <td>Måler omgivelseslyd med mikrofon og sender ut et motfasesignal i luften. Her menes akustisk støydemping rundt operatøren.</td>
         </tr>
       </tbody>
     </table>
@@ -343,6 +344,8 @@
       ANC arbeider på lyden <em>rundt</em> operatøren. ANF arbeider på lyden <em>fra</em>
       mottakeren. Dette prosjektet handler utelukkende om det siste. En tredje kategori,
       <em>støyreduksjon</em>, er heller ikke det samme – se <a href="#s4">seksjon 4</a>.
+      I DSP-litteraturen kan ANC også bety <em>adaptive noise cancellation</em>;
+      forkortelsen brukes her om aktiv akustisk støydemping.
     </p>
   </div>
 </section>
@@ -406,7 +409,7 @@ Hodetelefoner / høyttaler
         <tr>
           <td><strong>West Mountain Radio CLRdsp</strong><br><span class="small">ClearSpeech</span></td>
           <td>Ingen automatisk notch dokumentert som egen funksjon. Databladet oppgir adaptiv demping av enkelttone på over 50 dB [<a href="#r11">11</a>].</td>
-          <td>Adaptiv støyreduksjon for tale og CW. Produsenten oppgir at enheten gjenkjenner CW-signalets periodiske natur og lar det passere [<a href="#r11">11</a>].</td>
+          <td>Adaptiv støyreduksjon for tale og CW. Produsenten oppgir at enheten gjenkjenner CW-signalets avbrutte, tastede karakter og lar det passere [<a href="#r11">11</a>].</td>
         </tr>
         <tr>
           <td><strong>bhi Dual In-Line</strong></td>
@@ -579,10 +582,10 @@ Hodetelefoner / høyttaler
   <div class="box konklusjon">
     <span class="box-title">Konklusjon</span>
     <p>
-      Det trengs <strong>ikke</strong> noe kraftig grafikkort til dette. Lyd-DSP på 48 kHz
-      med noen få titalls filtre og én FFT per blokk er en oppgave i størrelsesorden promille
-      av hva en moderne prosessorkjerne kan levere. En GPU tilfører ingenting til denne
-      oppgaven – verken i prototypen eller i sluttproduktet.
+      Et kraftig grafikkort er ikke nødvendig for den foreslåtte DSP-kjeden. Lydbehandling
+      på 48 kHz med noen få titalls filtre og regelmessig FFT-analyse er normalt en beskjeden
+      CPU-oppgave. Faktisk belastning og tidsmargin må likevel måles på valgt plattform;
+      en GPU er ikke en forutsetning for prototypen eller den planlagte notchfiltreringen.
     </p>
   </div>
 
@@ -630,7 +633,8 @@ Hodetelefoner / høyttaler
       smalere notch.
     </li>
     <li>
-      <strong>Båndbredde og Q</strong> – −3 dB-båndbredden følger tilnærmet
+      <strong>Båndbredde og Q</strong> – for en smal notch tilstrekkelig langt fra DC
+      og Nyquist-frekvensen følger −3 dB-båndbredden tilnærmet
       <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>BW</mi><mo>≈</mo><mfrac><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>r</mi><mo stretchy="false">)</mo><mo>·</mo><msub><mi>f</mi><mi>s</mi></msub></mrow><mi>π</mi></mfrac></mrow><annotation encoding="application/x-tex">BW\approx\frac{(1-r)\cdot f_s}{\pi}</annotation></semantics></math>, og <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>Q</mi><mo>=</mo><mfrac><msub><mi>f</mi><mn>0</mn></msub><mi>BW</mi></mfrac></mrow><annotation encoding="application/x-tex">Q=\frac{f_0}{BW}</annotation></semantics></math>.
     </li>
   </ul>
@@ -641,23 +645,30 @@ Hodetelefoner / høyttaler
     lyttekvaliteten.
   </p>
 
-  <h4>Hvorfor et smalt notchfilter ikke ødelegger talen</h4>
+  <p class="small">
+    Transmittansen over er uten en egen faktor for forsterkningsnormalisering.
+    I en implementasjon må referanseforsterkning velges og kontrolleres for hele
+    notchbanken, slik <a href="#s18">seksjon 18</a> beskriver.
+  </p>
+
+  <h4>Et smalt inngrep i talen</h4>
   <p>
-    Tale i SSB-båndet 300–3000 Hz er bredbåndet og i kontinuerlig endring. Energien fordeler
-    seg over formanter som er flere hundre hertz brede, og informasjonen ligger i hvordan
-    disse formantene beveger seg over tid – ikke i én enkelt frekvenslinje. Et filter som
-    fjerner et bånd på 10–20 Hz tar derfor bort en forsvinnende liten del av taleenergien.
+    Tale i SSB-båndet 300–3000 Hz har en bred spektral struktur. Stemte lyder inneholder
+    likevel smale harmoniske komponenter under en formantkonvolutt. Et notchfilter på
+    10–20 Hz påvirker ofte en liten del av talebåndet, men kan treffe en sterk harmonisk
+    komponent og endre klang eller forståelighet [<a href="#r26">26</a>].
   </p>
   <p>
-    En heterodyn er det motsatte: all energien er konsentrert i én linje. Forholdet mellom
-    hva man vinner og hva man taper er derfor svært gunstig – forutsatt at filteret er smalt
-    nok og treffer riktig frekvens.
+    En stabil, tilnærmet sinusformet heterodyn har energien samlet rundt én frekvens.
+    Et presist innstilt, smalt filter kan derfor gi et gunstig forhold mellom støydemping
+    og inngrep i talen. Gevinsten og eventuell taleforringelse må bekreftes med opptak
+    og nivåtilpasset A/B-lytting, særlig når flere notchfiltre brukes samtidig.
   </p>
 
   <div class="box viktig">
     <span class="box-title">Høy Q er ikke gratis</span>
     <p>
-      Kompromisset ligger ikke i lyttekvaliteten, men i dynamikken. Et svært smalt filter
+      Kompromisset omfatter både lyttekvalitet og dynamikk. Et svært smalt filter
       (<math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>r</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">r\to1</annotation></semantics></math>) har lang impulsrespons, bruker lengre tid på å sette seg, reagerer
       tregere når tonen flytter seg, og er mer følsomt for feil i frekvensestimatet. Et
       bredere filter følger raskere, men spiser mer av talen. En praktisk løsning er å starte
@@ -686,8 +697,8 @@ Hodetelefoner / høyttaler
 
   <ul>
     <li><strong>μ (steglengde)</strong> styrer hvor store steg algoritmen tar. Stor μ gir rask konvergens, men større stasjonær feil og risiko for ustabilitet.</li>
-    <li><strong>Konvergens</strong> er tiden algoritmen bruker på å nå en brukbar løsning.</li>
-    <li><strong>Residualfeil</strong> er den gjenværende feilen etter konvergens; med LMS er den proporsjonal med μ.</li>
+    <li><strong>Konvergenstid</strong> er tiden algoritmen bruker på å nå en brukbar løsning.</li>
+    <li><strong>Residualfeil</strong> omfatter både den minste oppnåelige middelkvadratfeilen og et adaptasjonsbidrag. For liten μ er det overskytende MSE-bidraget ofte tilnærmet proporsjonalt med μ under standardforutsetningene; dette gjelder ikke hele residualfeilen [<a href="#r20">20</a>].</li>
     <li><strong>Stabilitet</strong> krever at μ holdes under en grense som avhenger av inngangssignalets effekt – et reelt problem når nivået varierer, slik det gjør med AGC og fading.</li>
     <li><strong>Sporingsevne</strong> er evnen til å følge en frekvens som endrer seg. Den står i direkte konflikt med lav residualfeil: begge styres av μ, men i hver sin retning.</li>
   </ul>
@@ -699,11 +710,19 @@ Hodetelefoner / høyttaler
     denne broen mellom «adaptiv estimator» og «notchfilter» som gjør LMS relevant her.
   </p>
 
+  <p class="small">
+    I LMS-uttrykket er x(n) inngangsvektoren, w(n) vektvektoren og e(n) differansen
+    mellom ønsket respons d(n) og filterutgangen y(n). For en adaptiv linjeestimator kan
+    en forsinket kopi av inngangen brukes som referanse; valg av forsinkelse og antakelser
+    om korrelasjon er da en del av algoritmen, ikke gitt av vektoppdateringen alene.
+  </p>
+
   <h4>NLMS</h4>
   <p>
     Normalized LMS normaliserer steglengden mot inngangseffekten og blir dermed langt mindre
     følsom for nivåvariasjoner. For en mottaker med AGC er dette en vesentlig praktisk
-    fordel. Grunnkompromisset mellom konvergenshastighet og sporingsevne består likevel.
+    fordel. Kompromisset mellom rask konvergens og sporing på den ene siden, og lav
+    stasjonær feil og lite estimatjitter på den andre, består likevel.
   </p>
 
   <h4>RLS</h4>
@@ -858,7 +877,9 @@ Hodetelefoner / høyttaler
       spektrum. Skal man dekke 300–3000 Hz med tilstrekkelig oppløsning, må man kjøre svært
       mange parallelle Goertzel-ledd, og da er en FFT både enklere og raskere. Goertzel hører
       hjemme som <em>etterbehandling</em>: når FFT-en har pekt ut en kandidat, kan et
-      Goertzel-ledd følge nettopp den frekvensen billig og med høy oppløsning.
+      Goertzel-ledd måle komponenten ved den aktuelle frekvensen. Selve sporingen krever
+      i tillegg en oppdateringsregel; nøyaktigheten avhenger fortsatt av observasjonstid,
+      signalnivå og støy.
     </p>
   </div>
 
@@ -970,12 +991,12 @@ Track 1
         <tr><th>Egenskap</th><th>Hva den skiller</th></tr>
       </thead>
       <tbody>
-        <tr><td>Tidsmessig persistens</td><td>En heterodyn ligger i sekunder og minutter. En formant varer i titalls millisekunder.</td></tr>
-        <tr><td>Båndbredde</td><td>En ren bærebølge er noen få hertz bred. En formant er hundrevis.</td></tr>
-        <tr><td>Harmonisk struktur</td><td>Stemte talelyder har en grunntone med harmoniske. En heterodyn står alene.</td></tr>
-        <tr><td>Amplitudemodulasjon</td><td>Tale svinger kontinuerlig i nivå. En bærebølge er tilnærmet konstant.</td></tr>
-        <tr><td>Frekvensmodulasjon og drift</td><td>Tale beveger seg raskt i frekvens. En bærebølge driver langsomt og monotont.</td></tr>
-        <tr><td>Innsettings- og utfasingsmønster</td><td>CW har brå, regelmessige start og stopp. Tale har mykere overganger.</td></tr>
+        <tr><td>Tidsmessig persistens</td><td>En heterodyn kan vedvare lenge. Tale varierer ofte raskere, men en holdt vokal kan også vare lenge.</td></tr>
+        <tr><td>Båndbredde</td><td>En ren tone kan være svært smal; målt toppbredde påvirkes av analysevinduet. Tale har også smale harmoniske under bredere formanter.</td></tr>
+        <tr><td>Harmonisk struktur</td><td>Stemte talelyder har harmoniske. En interferer kan være isolert, men også ha harmoniske eller flere følgekomponenter.</td></tr>
+        <tr><td>Amplitudemodulasjon</td><td>Tale har ofte stor nivåvariasjon. En bærebølge kan også variere på grunn av fading, AGC eller modulering.</td></tr>
+        <tr><td>Frekvensmodulasjon og drift</td><td>Talekomponenter varierer ofte raskt. En stabil interferer driver gjerne langsommere, men kan også hoppe eller moduleres.</td></tr>
+        <tr><td>Innsettings- og utfasingsmønster</td><td>CW har et tastemønster med pulser og pauser. Formede flanker, QSB og impulsiv tale gjør skillet mindre entydig.</td></tr>
         <tr><td>Spektral kontekst</td><td>Ligger det energi i nabobåndene samtidig, eller står toppen isolert?</td></tr>
         <tr><td>Driftsmodus</td><td>Hva operatøren faktisk lytter etter – se <a href="#s12">seksjon 12</a>.</td></tr>
       </tbody>
@@ -985,7 +1006,8 @@ Track 1
   <p>
     Enkeltvis er ingen av disse tilstrekkelige. Kombinert gir de et brukbart
     beslutningsgrunnlag – og det er nettopp denne kombinasjonen en liten klassifikator kan
-    håndtere bedre enn en håndskrevet terskelregel.
+    eventuelt kan håndtere bedre enn terskelregler. En slik forbedring må måles på
+    representative opptak.
   </p>
 </section>
 
@@ -1085,7 +1107,7 @@ Track 1
   </p>
   <p>
     At dette lar seg gjøre i praksis er ikke bare teori. West Mountain Radio oppgir at
-    ClearSpeech-prosessoren gjenkjenner CW-signalets periodiske natur og lar det passere
+    ClearSpeech-prosessoren gjenkjenner CW-signalets avbrutte, tastede karakter og lar det passere
     [<a href="#r11">11</a>], og SOTABEAMS beskriver tilsvarende at WOLFWAVEs adaptive
     tonefjerner er ment å fjerne bærebølger, men la CW stå [<a href="#r13">13</a>].
   </p>
@@ -1100,7 +1122,7 @@ Track 1
       <tbody>
         <tr>
           <td><strong>SSB</strong></td>
-          <td>Aggressiv tonefjerning. Alt som er smalt og stabilt over tid er nesten sikkert uønsket. CW-beskyttelse aktiv som sikkerhetsnett.</td>
+          <td>Vedvarende smale toner vurderes som kandidater. Terskler avstemmes mot taleforringelse, med CW-beskyttelse som ekstra sikkerhetsnett.</td>
         </tr>
         <tr>
           <td><strong>CW</strong></td>
@@ -1108,7 +1130,7 @@ Track 1
         </tr>
         <tr>
           <td><strong>DATA</strong></td>
-          <td>Notchfiltrering bør i praksis være av som standard. RTTY, FT8 og liknende <em>består</em> av smale toner, og enhver demping forringer dekodingen.</td>
+          <td>Notchfiltrering bør være av som standard. RTTY, FT8 og liknende bruker smale toner som kan skades av filtreringen; eventuell gevinst mot interferens må dokumenteres separat.</td>
         </tr>
       </tbody>
     </table>
@@ -1185,9 +1207,9 @@ deterministisk DSP-filter
       amplituderespons-plott. En ende-til-ende nevral lydprosessor kan ikke det på samme måte.
     </li>
     <li>
-      <strong>Forutsigbar oppførsel.</strong> Feiler klassifikatoren, blir konsekvensen at et
-      filter settes inn eller uteblir – ikke at lyden forvrenges av en modell som finner på
-      innhold som aldri var der.
+      <strong>Avgrenset modellrolle.</strong> Klassifikatoren styrer filtervalget og genererer
+      ikke selve lydsignalet. En feil beslutning kan likevel dempe ønsket tale eller CW;
+      beskyttelsesregler og bypass er derfor nødvendige.
     </li>
     <li>
       <strong>Beskjedne maskinvarekrav.</strong> En klassifikator som tar en beslutning noen
@@ -1202,13 +1224,13 @@ deterministisk DSP-filter
     harmonisk struktur og amplitudemodulasjon.
   </p>
   <p>
-    Denne tilnærmingen har direkte støtte i nyere arbeid. Soner, Aksoy og Halaçlı utleder
-    lette egenskaper fra et <em>virtuelt adaptivt notchfilter</em>, kombinerer dem med kjente
-    spektrale egenskaper, og viser at gradient-boostede beslutningstrær og andre kompakte
-    klassifikatorer gir høy treffsikkerhet for smalbåndet interferens innenfor
-    ressursbudsjettet til en innebygd plattform [<a href="#r19">19</a>]. Det er nøyaktig den
-    arkitekturen som foreslås her: DSP produserer egenskapene, en liten modell tar
-    beslutningen.
+    Nyere GNSS-arbeid gir en relevant arkitektonisk inspirasjon. Soner, Aksoy og Halaçlı
+    kombinerer egenskaper fra et <em>virtuelt adaptivt notchfilter</em> med spektrale
+    egenskaper og lette klassifikatorer [<a href="#r19">19</a>]. De rapporterer resultater
+    for interferens i komplekse GNSS-signaler før korrelasjon, med ett interfererende
+    signal om gangen. Dette dokumenterer ikke beskyttelse av SSB-tale eller morse.
+    Betegnelsen CW i studien betyr continuous-wave-interferens. Overføring til SmartANF
+    må valideres på egne lydopptak.
   </p>
 </section>
 
@@ -1271,11 +1293,11 @@ deterministisk DSP-filter
   <div class="box viktig">
     <span class="box-title">Viktig</span>
     <p>
-      Dette betyr <em>ikke</em> at en mikrokontroller kan trene en modell. Treningen gjøres på
-      PC med merkede opptak. Det som flyttes ut på den lille prosessoren er
-      <strong>inferensen</strong> – en kvantisert modell på noen få titalls kilobyte som
-      kjøres noen ganger i sekundet. Det er en fullt realistisk oppgave. Å forvente omfattende
-      læring eller tilpasning på selve enheten er det ikke.
+      For denne løsningen foreslås trening på PC med merkede opptak og
+      <strong>inferens</strong> på mikrokontrolleren. En liten kvantisert modell er realistisk,
+      men størrelse, minnebehov og kjøretid må dokumenteres på valgt målplattform.
+      Begrenset læring på selve enheten er mulig i andre opplegg; omfattende lokal trening
+      er ikke en forutsetning for SmartANF.
     </p>
   </div>
 </section>
@@ -1344,16 +1366,19 @@ deterministisk DSP-filter
   </div>
 
   <p>
-    Legger man til inn- og utbuffer, driverlag og omformere, ender man typisk i
-    størrelsesorden 10–30 ms totalt. Selve biquad-filtrene bidrar med neglisjerbar
-    forsinkelse, fordi de arbeider sample for sample.
+    Med inn- og utbuffer, driverlag og omformere kan 10–30 ms brukes som et foreløpig
+    budsjett, ikke som en målt egenskap ved SmartANF. Biquad-ledd kan arbeide sample for
+    sample uten et langt analysevindu i lydveien. De har likevel frekvensavhengig
+    gruppeforsinkelse og et innsvingningsforløp, særlig nær en smal notch
+    [<a href="#r21">21</a>].
   </p>
 
   <h4>Deteksjons- og beslutningslatens</h4>
   <p>
     Noe helt annet: tiden fra en tone dukker opp til systemet har <em>bestemt</em> at den skal
     fjernes. Den bestemmes av FFT-vinduets lengde, av kravet til persistens og av
-    hysteresereglene – og ligger typisk i området 200–800 ms.
+    hysteresereglene. Området 200–800 ms er et mulig innstillingsområde for prototypen;
+    faktisk tid og tiden frem til ønsket demping må måles.
   </p>
 
   <div class="box merknad">
@@ -1361,7 +1386,8 @@ deterministisk DSP-filter
     <p>
       Dette er nøkkelen til hele arkitekturen: notchfilteret arbeider i lydveien med en liten
       buffer, mens detektoren analyserer <em>lengre</em> vinduer parallelt. Beslutningen kan
-      altså ta et halvt sekund uten at lyden forsinkes med mer enn noen få millisekunder.
+      altså ta et halvt sekund uten å legge et tilsvarende halvt sekund til den
+      kontinuerlige lydtransporten.
       At den kontinuerlige lydstrømmen skulle være forsinket 800 ms, følger <em>ikke</em> av
       at detektoren bruker 800 ms.
     </p>
@@ -1387,23 +1413,24 @@ deterministisk DSP-filter
         <tr><td>CW-filter, BW &lt; 20 Hz</td><td>FIR, lineær fase</td><td>58 ms maks</td></tr>
       </tbody>
     </table>
-    <p class="small">Kilde: Timewaves spesifikasjon for DSP-599zx [<a href="#r10">10</a>].</p>
+    <p class="small">Kilde: Timewaves nettside med DSP-599zx-data [<a href="#r10">10</a>].
+    Den lenkede bruksanvisningen oppgir andre verdier for enkelte FIR-filtre, blant annet
+    24 ms for tale og 40/64 ms for CW. Tall må derfor knyttes til dokumentversjonen.</p>
   </div>
 
   <p>
-    Mønsteret er tydelig: den <em>adaptive notchfunksjonen</em> koster 5 ms, mens de smale
-    FIR-filtrene med lineær fase koster 21–58 ms. Et rekursivt notchledd er altså blant de
-    billigste blokkene man kan legge i lydveien – noe som støtter arkitekturen i
-    <a href="#s19">seksjon 19</a> direkte.
+    Produsenttallene viser at lav oppgitt transportlatens er mulig for en adaptiv
+    tonefjerner. De fastslår ikke hvilken intern filterstruktur som brukes, og erstatter
+    ikke måling av SmartANFs totale latens, gruppeforsinkelse og innsvingning.
   </p>
 
   <h4>Hva som påvirker lydlatensen</h4>
   <ul>
     <li><strong>Blokkstørrelse</strong> – den dominerende faktoren.</li>
-    <li><strong>WASAPI-, ASIO- eller PortAudio-buffere</strong> – delt modus gir betydelig mer forsinkelse enn eksklusiv modus.</li>
+    <li><strong>WASAPI-, ASIO- eller PortAudio-buffere</strong> – latensen avhenger av driver, modus og bufferoppsett. WASAPI kan støtte små buffere også i delt modus [<a href="#r24">24</a>].</li>
     <li><strong>USB-lyd</strong> – rammestruktur og pakking legger til noen millisekunder i hver retning.</li>
     <li><strong>FFT-vinduslengde og overlapp</strong> – påvirker deteksjonslatensen, ikke lydlatensen, så lenge analysen kjører i egen tråd.</li>
-    <li><strong>Algoritmisk forsinkelse</strong> – FIR-filtre med lineær fase koster halve filterlengden; IIR-notchledd har ingen tilsvarende gruppeforsinkelse av betydning.</li>
+    <li><strong>Algoritmisk forsinkelse</strong> – et lineærfaset FIR-filter med L koeffisienter har forsinkelsen (L − 1) / 2 sampler. IIR-notchledd har frekvensavhengig gruppeforsinkelse og innsvingning.</li>
     <li><strong>ADC-, DAC- og eventuell samplerate-konvertering</strong> – et fast bidrag som avhenger av maskinvaren.</li>
   </ul>
 
@@ -1448,7 +1475,7 @@ deterministisk DSP-filter
   </p>
   <ul>
     <li><strong>Koeffisientglatting.</strong> Koeffisientene interpoleres over noen millisekunder i stedet for å settes direkte.</li>
-    <li><strong>Interpolasjon i parameterrom.</strong> Man interpolerer <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msub><mi>ω</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">\omega_0</annotation></semantics></math> og r – ikke de rå biquad-koeffisientene – slik at filteret forblir stabilt gjennom hele overgangen.</li>
+    <li><strong>Interpolasjon i parameterrom.</strong> Man interpolerer <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msub><mi>ω</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">\omega_0</annotation></semantics></math> og r – ikke de rå biquad-koeffisientene – slik at hver frosne konfigurasjon kan holdes stabil. Stabilitet under selve tidsvariasjonen krever også kontroll med oppdateringshastighet og filtertilstand [<a href="#r25">25</a>].</li>
     <li><strong>Begrenset retuninghastighet.</strong> Store hopp deles opp i flere mindre steg med en øvre grense for endring per tidsenhet.</li>
     <li><strong>Kryssfading.</strong> To parallelle filterinstanser kjøres et kort øyeblikk, og utgangen fades fra den gamle til den nye.</li>
     <li><strong>Forsterkningsnormalisering.</strong> Et notchledd skal ha tilnærmet enhetsforsterkning utenfor notchen, slik at det ikke oppstår hørbare nivåsprang når filtre settes inn og ut. Med flere ledd i kaskade må dette kontrolleres samlet.</li>
@@ -1479,8 +1506,8 @@ deterministisk DSP-filter
 
   <div class="grid">
     <div class="mini">
-      <h4>Lydtråd – hard sanntid</h4>
-<pre tabindex="0" aria-label="Lydtråd – hard sanntid">
+      <h4>Lydtråd – tidskritisk</h4>
+<pre tabindex="0" aria-label="Lydtråd – tidskritisk">
 inngang
    ↓
 notchbank
@@ -1498,7 +1525,7 @@ utgang
     <div class="mini">
       <h4>Analysetråd – myk sanntid</h4>
 <pre tabindex="0" aria-label="Analysetråd – myk sanntid">
-lydkopi
+inngangskopi før notchbanken
    ↓
 STFT / FFT
    ↓
@@ -1537,7 +1564,7 @@ notchkontroller
     <p>
       Lydtråden skal <strong>aldri</strong> vente på analysetråden, klassifikatoren, disk-I/O,
       logging eller grensesnittet. All kommunikasjon går én vei, gjennom låsefrie strukturer
-      eller en liten trådsikker kø: analysen <em>publiserer</em> ønskede filterparametre, og
+      eller en avgrenset kø som aldri blokkerer lydtråden: analysen <em>publiserer</em> ønskede filterparametre, og
       lydtråden leser dem når den er klar. Blokkerer lydtråden i påvente av en beslutning, får
       man dropouts – og et system med dropouts er verdiløst, uansett hvor god notchalgoritmen
       er.
@@ -1689,7 +1716,8 @@ optimalisert DSP
 <div class="part" id="litteratur">
   <span class="part-label">Referanser</span>
   <h2>Litteratur og tekniske kilder</h2>
-  <p>Alle kilder er kontrollert mot tidsskrift, utgiver eller produsentens egen dokumentasjon.</p>
+  <p>Referansene omfatter DSP-litteratur, produsentopplysninger og nyere forskning.
+  Oppgitte produktverdier er kildenes deklarasjoner; de er ikke egne målinger av SmartANF.</p>
 </div>
 
 <section class="card">
@@ -1712,7 +1740,7 @@ optimalisert DSP
       N. I. Cho, C. H. Choi og S. U. Lee, «Adaptive line enhancement by using an IIR lattice
       notch filter», <em>IEEE Transactions on Acoustics, Speech, and Signal Processing</em>,
       bd. 37, nr. 4, s. 585–589, 1989.
-      <br><span class="small">DOI ikke verifisert; oppgitt med tidsskrift, bind, nummer og sidetall.</span>
+      DOI: <a href="https://doi.org/10.1109/29.17543">10.1109/29.17543</a>
     </li>
     <li value="4" id="r4">
       D. C. Rife og R. R. Boorstyn, «Single-tone parameter estimation from discrete-time
@@ -1765,7 +1793,8 @@ optimalisert DSP
   <ol class="refs">
     <li value="10" id="r10">
       Timewave, <em>DSP-599zx – spesifikasjoner og bruksanvisning</em>.
-      <a href="https://www.universal-radio.com/catalog/filters/3630spec.html">Spesifikasjon</a> ·
+      <a href="https://timewave.com/support/DSP-599/599data.html">Produsentens data</a> ·
+      <a href="https://www.universal-radio.com/catalog/filters/3630spec.html">Forhandlerspesifikasjon</a> ·
       <a href="https://timewave.com/support/DSP-599/599zxom.pdf">Bruksanvisning (PDF)</a>
       <br><span class="small">Oppgir «Heterodyne Eliminator – Multiple Automatic Notch» og manuell notch med inntil 50 dB demping og 5 ms maksimal forsinkelse, samt adaptiv støyreduksjon inntil 20 dB. Forsinkelse per filterblokk er gjengitt i <a href="#s17">seksjon 17</a>.</span>
     </li>
@@ -1773,7 +1802,7 @@ optimalisert DSP
       West Mountain Radio, <em>CLRdsp – ClearSpeech DSP Noise Reduction Processor</em>.
       <a href="https://www.westmountainradio.com/product_info.php?products_id=clr_dsp">Produktside</a> ·
       <a href="https://www.westmountainradio.com/pdf/CLRdsp_Manual.pdf">Bruksanvisning (PDF)</a>
-      <br><span class="small">Oppgir adaptiv støyreduksjon, demping av enkelttone over 50 dB, og at enheten gjenkjenner CW-signalets periodiske natur og lar det passere.</span>
+      <br><span class="small">Oppgir adaptiv støyreduksjon, demping av enkelttone over 50 dB, og at enheten gjenkjenner CW-signalets avbrutte, tastede karakter og lar det passere.</span>
     </li>
     <li value="12" id="r12">
       bhi Ltd, <em>Dual In-Line Amplified DSP Noise Cancelling Module</em>.
@@ -1844,6 +1873,121 @@ optimalisert DSP
     </p>
   </div>
 
+  <a class="toplink" href="#top">↑ Til toppen</a>
+</section>
+
+<section class="card" id="fagkilder">
+  <h3>E. Supplerende fagkilder</h3>
+  <ol class="refs">
+    <li value="20" id="r20">MathWorks, <em>LMS-filter: signaldefinisjoner, steglengde og MSE</em>.
+      <a href="https://www.mathworks.com/help/dsp/ref/dsp.lmsfilter-system-object.html">Offisiell dokumentasjon</a>.</li>
+    <li value="21" id="r21">SciPy, <em>group_delay</em>: definisjon og begrensninger ved nullpunkter.
+      <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.group_delay.html">Offisiell dokumentasjon</a>.</li>
+    <li value="22" id="r22">Kenwood, <em>TS-590SG In-Depth Manual</em>, kapittel 4.3 om interferensdemping i IF-AGC-sløyfen.
+      <a href="https://www.kenwood.com/i/products/info/amateur/pdf/TS-590SG_IDM.pdf">Produsentens PDF</a>.</li>
+    <li value="23" id="r23">Texas Instruments, <em>TAS5721/TAS5723 EVM User’s Guide</em>, avsnitt 2.1.3 om BTL-utganger.
+      <a href="https://www.ti.com/mx/lit/pdf/slou346">Produsentens PDF</a>.</li>
+    <li value="24" id="r24">Microsoft, <em>Low Latency Audio</em>: WASAPI, driverperioder og små buffere i delt modus.
+      <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/audio/low-latency-audio">Offisiell dokumentasjon</a>.</li>
+    <li value="25" id="r25">J. Laroche, «On the Stability of Time-Varying Recursive Filters»,
+      <em>Journal of the Audio Engineering Society</em>, 55, 2007.
+      <a href="https://aes.org/publications/elibrary-page/?id=14168">AES</a>.</li>
+    <li value="26" id="r26">J. O. Smith, <em>Spectral Audio Signal Processing</em>, «Classic Spectrograms».
+      <a href="https://www.dsprelated.com/freebooks/SASP/Classic_Spectrograms.html">Forfatterens nettbok</a>.</li>
+  </ol>
+</section>
+
+<div class="part" id="faglige-merknader">
+  <h2>Faglige merknader</h2>
+  <p>Praktiske premisser og spørsmål til videre arbeid.</p>
+</div>
+
+<section class="card" aria-labelledby="merknader-premisser">
+  <h3 id="merknader-premisser">Fra teori til mottakerlyd</h3>
+  <p>
+    Jeg legger her til mine faglige merknader og praktiske betraktninger som innspill til
+    videre gjennomtenkning av SmartANF. Litteraturen gir et solid utgangspunkt, men må
+    også vurderes opp mot virkelig mottakerlyd, maskinvare og operatørens behov.
+    Punktene under er premisser og forslag til undersøkelser, ikke målte produktegenskaper.
+  </p>
+
+  <h4>AF, RF og AGC</h4>
+  <p>
+    En ekstern lydprosessor kan redusere en hørbar tone etter demodulasjon. Den kan ikke
+    oppheve blokkering, kompresjon, intermodulasjon eller informasjonstap som allerede har
+    oppstått i mottakeren. En sterk interferer kan dessuten styre AGC før SmartANF får
+    signalet. Effekten må derfor vurderes annerledes enn for et notchfilter inne i
+    IF-AGC-sløyfen [<a href="#r22">22</a>].
+  </p>
+
+  <h4>Presisjon og notchdybde</h4>
+  <p>
+    Smal notch krever presist frekvensestimat. Beregnet direkte fra transmittansen i
+    <a href="#s7">seksjon 7</a>, med 48 kHz, 1468 Hz og r = 0,999, gir en feil på 1 Hz
+    omtrent 18 dB demping; 0,1 Hz gir omtrent 38 dB. Omtrent 50 dB krever her en feil rundt
+    0,024 Hz. Dette er idealberegninger for et fast filter, ikke målinger. Støy, drift,
+    estimatjitter og tallpresisjon må inngå i et praktisk feilbudsjett.
+  </p>
+  <p>
+    Høy Q har også et tidsmessig aspekt. For samme polradius er den beregnede
+    avklingingstidskonstanten omtrent 20,8 ms; polenes frie svingningskomponent avtar
+    60 dB i løpet av omtrent 144 ms. Dette er ikke en fast forsinkelse av hele lydstrømmen
+    eller et mål på hvor høyt ringing vil høres.
+  </p>
+
+  <h4>Tale og CW på samme frekvens</h4>
+  <p>
+    Et notchfilter demper også ønsket signal innenfor stoppbåndet. Hvis CW og en uønsket
+    tone overlapper i frekvens, kan ikke filteret alene skille dem. CW PROTECT bør derfor
+    bruke konservative regler, et beskyttet område rundt lyttetonen og enkel overstyring.
+    Lange tastinger, QSB, flere stasjoner og talens harmoniske må prøves særskilt.
+  </p>
+
+  <h4>Hva FFT-en faktisk måler</h4>
+  <p>
+    4096 sampler ved 48 kHz gir 85,3 ms observasjonstid og 11,7 Hz mellom binene.
+    Sub-bin-estimering av én tone er mulig, men er ikke det samme som å måle dens fysiske
+    båndbredde eller å skille to nærliggende toner. Analysevinduets respons og måleusikkerhet
+    må tas med. Mer overlapp forkorter ikke vinduet; CW-observasjon kan trenge et eget,
+    kortere vindu for å bevare tidsmønsteret.
+  </p>
+</section>
+
+<section class="card" aria-labelledby="merknader-utproving">
+  <h3 id="merknader-utproving">Videre praktisk utprøving</h3>
+
+  <h4>Grensesnitt og maskinvare</h4>
+  <p>
+    Linje-, hodetelefon- og høyttalerutganger krever ulik tilpasning av nivå og impedans.
+    En eventuell brokoblet BTL-utgang må ikke kobles som en vanlig jordet lydutgang
+    [<a href="#r23">23</a>]. Inngangsvern, ADC-headroom, egenstøy og utgangstrinn må beskrives.
+    En ferdig boks bør også prøves for jordsløyfer, RF-innstråling under sending og egne
+    forstyrrelser fra USB, prosessor og strømforsyning.
+  </p>
+
+  <h4>Klokker og filterkontroll</h4>
+  <p>
+    To separate USB-lydenheter kan ha ulike samplingsklokker selv om begge står på 48 kHz.
+    Bruk helst et full-dupleksgrensesnitt med felles klokke, eller håndter drift eksplisitt.
+    Trackeren skal analysere inngangen før notchbanken; utgangen kan overvåkes separat.
+    Retuning, nærstående eller kryssende toner, køoverløp og foreldede beslutninger trenger
+    definerte regler. Tidskritisk audio på Windows innebærer ikke en hard sanntidsgaranti.
+  </p>
+
+  <h4>Et målbart grunnlag</h4>
+  <p>
+    Før terskler eller ML-modell velges, bør vi definere akseptkriterier: nødvendig demping
+    ved drift, tid frem til ønsket demping, falske filterinnkoblinger per lyttetime og hvor
+    lenge nyttig signal eventuelt skades. Ren tale uten interferens er en nødvendig kontroll.
+    A/B-lytting bør ha sammenliknbart nivå og korrigert tidsforskyvning.
+  </p>
+  <p>
+    ML bør sammenliknes med en enkel regelbasert referanse på de samme opptakene.
+    Trenings- og testdata må skilles etter opptaksøkt, stasjon og mottaker, ikke bare etter
+    overlappende rammer. GNSS-resultater og produsenters funksjonsbeskrivelser er nyttige
+    referanser, men erstatter ikke denne utprøvingen. Jeg ser disse punktene som vesentlige
+    innspill til videre diskusjon og utvikling av konseptet.
+  </p>
   <a class="toplink" href="#top">↑ Til toppen</a>
 </section>
 

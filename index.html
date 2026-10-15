@@ -60,7 +60,8 @@
   .part p{ margin:0; color:var(--muted); }
   section.card{ background:var(--panel); padding:32px; margin:0 0 120px; }
   section.card > h3{ margin:0 0 24px; font-size:28px; line-height:1.2; letter-spacing:-.02em; text-wrap:pretty; }
-  section.card > h3 .num{ color:var(--accent); font-variant-numeric:tabular-nums; margin-right:8px; }
+  section.card[id^="s"] > h3{ color:var(--good); }
+  section.card > h3 .num{ color:inherit; font-variant-numeric:tabular-nums; margin-right:8px; }
   h4{ margin:40px 0 16px; font-size:28px; line-height:1.2; letter-spacing:-.02em; color:var(--accent); text-wrap:pretty; }
   ul,ol{ padding-left:24px; }
   li{ margin:8px 0; }
@@ -89,7 +90,19 @@
   }
   code{ font-family:inherit; font-size:1em; background:var(--code); padding:1px 4px; overflow-wrap:anywhere; }
   pre code{ font-family:inherit; background:none; padding:0; overflow-wrap:normal; }
-  .eq{ background:var(--code); padding:20px; margin:24px 0; overflow-wrap:anywhere; font-size:17px; color:#e4eef7; }
+  math{ font-family:math; }
+  .inline-math{ font-size:1.08em; }
+  .eq{
+    background:var(--code); padding:24px 20px; margin:28px 0;
+    color:#e4eef7; font-size:21px; line-height:1.5; overflow-x:auto;
+    overscroll-behavior-x:contain; scrollbar-width:thin;
+    scrollbar-color:var(--accent-dim) var(--code);
+  }
+  .eq-sequence{ display:flex; flex-wrap:wrap; align-items:center; gap:16px 20px; }
+  .eq .display-math{ flex:0 0 auto; display:block; width:max-content; margin:0; font-size:1em; }
+  @media (max-width:620px){
+    .eq{ font-size:20px; }
+  }
   figure{ margin:28px 0; }
   figcaption{ color:var(--muted); font-size:16px; margin-top:16px; max-width:66ch; }
   .svg-wrap{ overflow-x:auto; background:var(--code); padding:16px; }
@@ -100,6 +113,7 @@
   .mini pre{ margin:0; font-size:16px; }
   .kpi{ font-size:17px; color:var(--accent); font-weight:700; margin-bottom:12px; }
   .table-wrap{ overflow-x:auto; margin:28px 0; }
+  pre, .svg-wrap, .table-wrap{ overscroll-behavior-x:contain; scrollbar-width:thin; scrollbar-color:var(--accent-dim) var(--code); }
   table{ width:100%; border-collapse:collapse; min-width:520px; }
   th,td{ border-bottom:1px solid var(--line); padding:16px 12px; text-align:left; vertical-align:top; font-size:17px; }
   th{ color:var(--accent); font-weight:600; }
@@ -129,25 +143,35 @@
     .grid{ grid-template-columns:1fr; }
   }
   @media (max-width:620px){
-    .wrap{ padding:20px 20px 48px; }
-    header.hero{ padding:28px 16px; margin-bottom:72px; }
-    header.hero h1{ font-size:26px; line-height:1.15; letter-spacing:-.025em; margin-bottom:24px; }
+    /* One 20px reading margin, rather than nested page and panel gutters. */
+    .wrap{ padding:0 0 48px; }
+    header.hero{ padding:28px 20px; margin-bottom:72px; }
+    header.hero h1{ font-size:clamp(24px,6.67vw,28px); line-height:1.15; letter-spacing:-.025em; margin-bottom:24px; }
     .intro-context{ margin-bottom:20px; }
-    section.card{ padding:24px 16px; margin-bottom:72px; }
+    section.card{ padding:28px 20px; margin-bottom:72px; }
     section.card > h3, h4, .part h2, nav.toc h2{ font-size:22px; line-height:1.25; }
-    .part{ padding:24px 16px; margin-top:72px; margin-bottom:32px; }
-    nav.toc{ padding:24px 16px; margin-bottom:72px; }
+    .part{ padding:28px 20px; margin-top:72px; margin-bottom:32px; }
+    nav.toc{ padding:28px 20px; margin-bottom:72px; }
     nav.toc a{ min-height:44px; }
     nav.toc ol ol{ padding-left:16px; }
     .badges{ gap:10px 18px; }
     .badge{ font-size:16px; }
     .part h2{ font-size:20px; }
     .box{ padding:20px 16px; }
-    .grid{ gap:24px; }
+    .grid{ gap:32px; }
     pre{ padding:16px; }
     .eq{ padding:16px; }
     th,td{ padding:14px 10px; }
-    footer.doc{ margin-top:72px; padding:0 16px; }
+    .compact-table{ min-width:0; table-layout:fixed; }
+    .compact-table th:first-child, .compact-table td:first-child{ width:35%; }
+    .compact-table th, .compact-table td{ overflow-wrap:anywhere; }
+    ol.refs li{ padding-left:36px; }
+    footer.doc{ margin-top:72px; padding:0 20px; }
+  }
+  @media (max-width:359px){
+    header.hero h1{ font-size:22px; }
+    section.card > h3{ font-size:20px; }
+    .part h2{ font-size:18px; }
   }
 
   /* Entrances never hide content while waiting for JavaScript. */
@@ -581,27 +605,24 @@ Hodetelefoner / høyttaler
     polene på samme vinkel, men litt innenfor:
   </p>
 
-  <div class="eq">
-    H(z) =
-    (1 − 2·cos(ω<sub>0</sub>)·z<sup>−1</sup> + z<sup>−2</sup>)
-    /
-    (1 − 2r·cos(ω<sub>0</sub>)·z<sup>−1</sup> + r<sup>2</sup>·z<sup>−2</sup>)
+  <div class="eq eq-scroll" tabindex="0" role="region" aria-label="Notchfilterets overføringsfunksjon">
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><mn>2</mn><mo>·</mo><mi mathvariant="normal">cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>·</mo><msup><mi>z</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mo>+</mo><msup><mi>z</mi><mrow><mo>−</mo><mn>2</mn></mrow></msup></mrow><mrow><mn>1</mn><mo>−</mo><mn>2</mn><mi>r</mi><mo>·</mo><mi mathvariant="normal">cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>·</mo><msup><mi>z</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mo>+</mo><msup><mi>r</mi><mn>2</mn></msup><mo>·</mo><msup><mi>z</mi><mrow><mo>−</mo><mn>2</mn></mrow></msup></mrow></mfrac></mrow><annotation encoding="application/x-tex">H(z)=\frac{1-2\cdot\cos(\omega_0)\cdot z^{-1}+z^{-2}}{1-2r\cdot\cos(\omega_0)\cdot z^{-1}+r^2\cdot z^{-2}}</annotation></semantics></math>
   </div>
 
   <h4>Parametrene</h4>
   <ul>
     <li>
-      <strong>ω<sub>0</sub></strong> – normalisert vinkelfrekvens,
-      <code>ω₀ = 2π·f₀/f_s</code>. En tone på 1468 Hz ved 48 kHz gir
-      <code>ω₀ ≈ 0,1921 rad</code>.
+      <strong><math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msub><mi>ω</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">\omega_0</annotation></semantics></math></strong> – normalisert vinkelfrekvens,
+      <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msub><mi>ω</mi><mn>0</mn></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi><mo>·</mo><msub><mi>f</mi><mn>0</mn></msub></mrow><msub><mi>f</mi><mi>s</mi></msub></mfrac></mrow><annotation encoding="application/x-tex">\omega_0=\frac{2\pi\cdot f_0}{f_s}</annotation></semantics></math>. En tone på 1468 Hz ved 48 kHz gir
+      <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msub><mi>ω</mi><mn>0</mn></msub><mo>≈</mo><mn>0,1921</mn><mspace width="0.2em"/><mtext>rad</mtext></mrow><annotation encoding="application/x-tex">\omega_0\approx0{,}1921\,\mathrm{rad}</annotation></semantics></math>.
     </li>
     <li>
-      <strong>Nullpunktene</strong> ligger på enhetssirkelen ved <code>e<sup>±jω₀</sup></code>.
+      <strong>Nullpunktene</strong> ligger på enhetssirkelen ved <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msup><mi>e</mi><mrow><mo>±</mo><mi>j</mi><msub><mi>ω</mi><mn>0</mn></msub></mrow></msup></mrow><annotation encoding="application/x-tex">e^{\pm j\omega_0}</annotation></semantics></math>.
       Det er dette som gir teoretisk uendelig demping nøyaktig ved notchfrekvensen.
     </li>
     <li>
-      <strong>Polene</strong> ligger ved <code>r·e<sup>±jω₀</sup></code>, altså på samme
-      vinkel, men med radius <code>r &lt; 1</code>. De trekker responsen tilbake mot 1 like
+      <strong>Polene</strong> ligger ved <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>r</mi><mo>·</mo><msup><mi>e</mi><mrow><mo>±</mo><mi>j</mi><msub><mi>ω</mi><mn>0</mn></msub></mrow></msup></mrow><annotation encoding="application/x-tex">r\cdot e^{\pm j\omega_0}</annotation></semantics></math>, altså på samme
+      vinkel, men med radius <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>r</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">r&lt;1</annotation></semantics></math>. De trekker responsen tilbake mot 1 like
       utenfor notchen og bestemmer dermed hvor smal den blir.
     </li>
     <li>
@@ -610,13 +631,13 @@ Hodetelefoner / høyttaler
     </li>
     <li>
       <strong>Båndbredde og Q</strong> – −3 dB-båndbredden følger tilnærmet
-      <code>BW ≈ (1 − r)·f_s/π</code>, og <code>Q = f₀/BW</code>.
+      <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>BW</mi><mo>≈</mo><mfrac><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>r</mi><mo stretchy="false">)</mo><mo>·</mo><msub><mi>f</mi><mi>s</mi></msub></mrow><mi>π</mi></mfrac></mrow><annotation encoding="application/x-tex">BW\approx\frac{(1-r)\cdot f_s}{\pi}</annotation></semantics></math>, og <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>Q</mi><mo>=</mo><mfrac><msub><mi>f</mi><mn>0</mn></msub><mi>BW</mi></mfrac></mrow><annotation encoding="application/x-tex">Q=\frac{f_0}{BW}</annotation></semantics></math>.
     </li>
   </ul>
 
   <p>
-    Med <code>f_s = 48 kHz</code> gir <code>r = 0,999</code> en båndbredde i størrelsesorden
-    15 Hz, mens <code>r = 0,99</code> gir omtrent 150 Hz. Forskjellen er dramatisk for
+    Med <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mn>48</mn><mspace width="0.2em"/><mtext>kHz</mtext></mrow><annotation encoding="application/x-tex">f_s=48\,\mathrm{kHz}</annotation></semantics></math> gir <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0,999</mn></mrow><annotation encoding="application/x-tex">r=0{,}999</annotation></semantics></math> en båndbredde i størrelsesorden
+    15 Hz, mens <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0,99</mn></mrow><annotation encoding="application/x-tex">r=0{,}99</annotation></semantics></math> gir omtrent 150 Hz. Forskjellen er dramatisk for
     lyttekvaliteten.
   </p>
 
@@ -637,7 +658,7 @@ Hodetelefoner / høyttaler
     <span class="box-title">Høy Q er ikke gratis</span>
     <p>
       Kompromisset ligger ikke i lyttekvaliteten, men i dynamikken. Et svært smalt filter
-      (<code>r → 1</code>) har lang impulsrespons, bruker lengre tid på å sette seg, reagerer
+      (<math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>r</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">r\to1</annotation></semantics></math>) har lang impulsrespons, bruker lengre tid på å sette seg, reagerer
       tregere når tonen flytter seg, og er mer følsomt for feil i frekvensestimatet. Et
       bredere filter følger raskere, men spiser mer av talen. En praktisk løsning er å starte
       bredt for rask innfanging og deretter snevre inn når estimatet har stabilisert seg.
@@ -658,7 +679,10 @@ Hodetelefoner / høyttaler
     Least Mean Squares oppdaterer vektvektoren proporsjonalt med det momentane feilsignalet:
   </p>
 
-  <div class="eq">w(n+1) = w(n) + μ·e(n)·x(n)</div>
+  <div class="eq eq-sequence" tabindex="0" role="region" aria-label="LMS-oppdatering">
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><mi>w</mi><mo stretchy="false">(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo stretchy="false">)</mo><mo>=</mo></mrow><annotation encoding="application/x-tex">w(n+1)=</annotation></semantics></math>
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><mi>w</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo>+</mo><mi>μ</mi><mo>·</mo><mi>e</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo>·</mo><mi>x</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">w(n)+\mu\cdot e(n)\cdot x(n)</annotation></semantics></math>
+  </div>
 
   <ul>
     <li><strong>μ (steglengde)</strong> styrer hvor store steg algoritmen tar. Stor μ gir rask konvergens, men større stasjonær feil og risiko for ustabilitet.</li>
@@ -685,7 +709,7 @@ Hodetelefoner / høyttaler
   <h4>RLS</h4>
   <p>
     Recursive Least Squares konvergerer klart raskere, men til høyere beregningskostnad –
-    <code>O(N²)</code> mot <code>O(N)</code> per sample – og med større krav til numerisk
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><msup><mi>N</mi><mn>2</mn></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(N^2)</annotation></semantics></math> mot <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>N</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(N)</annotation></semantics></math> per sample – og med større krav til numerisk
     omhu. Teorigrunnlaget for begge familiene er grundig behandlet hos Haykin
     [<a href="#r7">7</a>] og Widrow &amp; Stearns [<a href="#r8">8</a>].
   </p>
@@ -788,7 +812,10 @@ Hodetelefoner / høyttaler
     vinduslengden:
   </p>
 
-  <div class="eq">Δf = f<sub>s</sub> / N  →  48000 / 4096 ≈ 11,7 Hz</div>
+  <div class="eq eq-sequence" tabindex="0" role="region" aria-label="Frekvensoppløsning">
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><mi>Δ</mi><mi>f</mi><mo>=</mo><mfrac><msub><mi>f</mi><mi>s</mi></msub><mi>N</mi></mfrac></mrow><annotation encoding="application/x-tex">\Delta f=\frac{f_s}{N}</annotation></semantics></math>
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><mo>→</mo><mfrac><mn>48000</mn><mn>4096</mn></mfrac><mo>≈</mo><mn>11,7</mn><mspace width="0.2em"/><mtext>Hz</mtext></mrow><annotation encoding="application/x-tex">\to\frac{48000}{4096}\approx11{,}7\,\mathrm{Hz}</annotation></semantics></math>
+  </div>
 
   <p>Sentrale forhold:</p>
   <ul>
@@ -938,7 +965,7 @@ Track 1
   <p>Et brukbart system må derfor vurdere flere egenskaper enn nivå alene:</p>
 
   <div class="table-wrap" tabindex="0" role="region" aria-label="11.Tale, CW og interferens">
-    <table>
+    <table class="compact-table">
       <thead>
         <tr><th>Egenskap</th><th>Hva den skiller</th></tr>
       </thead>
@@ -1066,7 +1093,7 @@ Track 1
   <h4>Modusavhengige regler</h4>
 
   <div class="table-wrap" tabindex="0" role="region" aria-label="Modusavhengige regler">
-    <table>
+    <table class="compact-table">
       <thead>
         <tr><th>Modus</th><th>Regel</th></tr>
       </thead>
@@ -1310,7 +1337,11 @@ deterministisk DSP-filter
     bufring:
   </p>
 
-  <div class="eq">f<sub>s</sub> = 48 kHz, blokk = 256 sampler → 256 / 48000 ≈ 5,33 ms</div>
+  <div class="eq eq-sequence" tabindex="0" role="region" aria-label="Blokkstørrelse og lydlatens">
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mn>48</mn><mspace width="0.2em"/><mtext>kHz</mtext><mo>,</mo></mrow><annotation encoding="application/x-tex">f_s=48\,\mathrm{kHz},</annotation></semantics></math>
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><mtext>blokk</mtext><mo>=</mo><mn>256</mn><mspace width="0.2em"/><mtext>sampler</mtext></mrow><annotation encoding="application/x-tex">\text{blokk}=256\;\text{sampler}</annotation></semantics></math>
+    <math xmlns="http://www.w3.org/1998/Math/MathML" class="display-math" display="block"><semantics><mrow><mo>→</mo><mfrac><mn>256</mn><mn>48000</mn></mfrac><mo>≈</mo><mn>5,33</mn><mspace width="0.2em"/><mtext>ms</mtext></mrow><annotation encoding="application/x-tex">\to\frac{256}{48000}\approx5{,}33\,\mathrm{ms}</annotation></semantics></math>
+  </div>
 
   <p>
     Legger man til inn- og utbuffer, driverlag og omformere, ender man typisk i
@@ -1417,7 +1448,7 @@ deterministisk DSP-filter
   </p>
   <ul>
     <li><strong>Koeffisientglatting.</strong> Koeffisientene interpoleres over noen millisekunder i stedet for å settes direkte.</li>
-    <li><strong>Interpolasjon i parameterrom.</strong> Man interpolerer ω<sub>0</sub> og r – ikke de rå biquad-koeffisientene – slik at filteret forblir stabilt gjennom hele overgangen.</li>
+    <li><strong>Interpolasjon i parameterrom.</strong> Man interpolerer <math xmlns="http://www.w3.org/1998/Math/MathML" class="inline-math"><semantics><mrow><msub><mi>ω</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">\omega_0</annotation></semantics></math> og r – ikke de rå biquad-koeffisientene – slik at filteret forblir stabilt gjennom hele overgangen.</li>
     <li><strong>Begrenset retuninghastighet.</strong> Store hopp deles opp i flere mindre steg med en øvre grense for endring per tidsenhet.</li>
     <li><strong>Kryssfading.</strong> To parallelle filterinstanser kjøres et kort øyeblikk, og utgangen fades fra den gamle til den nye.</li>
     <li><strong>Forsterkningsnormalisering.</strong> Et notchledd skal ha tilnærmet enhetsforsterkning utenfor notchen, slik at det ikke oppstår hørbare nivåsprang når filtre settes inn og ut. Med flere ledd i kaskade må dette kontrolleres samlet.</li>
@@ -1827,7 +1858,7 @@ optimalisert DSP
     faktisk skal filtreres bort.
   </p>
   <p class="fineprint">
-    dette konseptdokumentet er utarbeidet for medlemmene i la2d-gruppen.
+    dette konseptdokumentet er utarbeidet for medlemmene i LA2D-gruppen.
   </p>
 </footer>
 

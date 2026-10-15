@@ -37,7 +37,10 @@
   .intro-context{ font-size:17px; color:var(--accent); margin:0 0 24px; }
   header.hero h1{
     margin:0 0 32px;
-    font-size:clamp(32px,4.6vw,66px);
+    font-size:clamp(28px,4vw,56px);
+    color:#d9e0e6;
+    -webkit-text-stroke:.7px #c65353;
+    paint-order:stroke fill;
     line-height:1.05;
     letter-spacing:-.035em;
     text-wrap:pretty;
@@ -147,7 +150,7 @@
     /* One 20px reading margin, rather than nested page and panel gutters. */
     .wrap{ padding:0 0 48px; }
     header.hero{ padding:28px 20px; margin-bottom:72px; }
-    header.hero h1{ font-size:clamp(24px,6.67vw,28px); line-height:1.15; letter-spacing:-.025em; margin-bottom:24px; }
+    header.hero h1{ font-size:clamp(22px,6.15vw,26px); line-height:1.15; letter-spacing:-.025em; margin-bottom:24px; }
     .intro-context{ margin-bottom:20px; }
     section.card{ padding:28px 20px; margin-bottom:72px; }
     section.card > h3, h4, .part h2, nav.toc h2{ font-size:22px; line-height:1.25; }
@@ -170,7 +173,7 @@
     footer.doc{ margin-top:72px; padding:0 20px; }
   }
   @media (max-width:359px){
-    header.hero h1{ font-size:22px; }
+    header.hero h1{ font-size:20px; }
     section.card > h3{ font-size:20px; }
     .part h2{ font-size:18px; }
   }
